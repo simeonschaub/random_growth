@@ -35,13 +35,13 @@ jobs:
           arch: ${{ matrix.arch }}
       - uses: julia-actions/cache@v1
       - uses: julia-actions/julia-buildpkg@v1
-        working-directory: ${{ matrix.dir }}
+        project: ${{ matrix.dir }}
       - uses: julia-actions/julia-runtest@v1
-        working-directory: ${{ matrix.dir }}
+        project: ${{ matrix.dir }}
       - uses: julia-actions/julia-processcoverage@v1
-        working-directory: ${{ matrix.dir }}
+        with:
+          directories: ${{ matrix.dir }}/src
       - uses: codecov/codecov-action@v2
-        working-directory: ${{ matrix.dir }}
         with:
           files: lcov.info
   docs:
@@ -59,14 +59,43 @@ jobs:
         with:
           version: '1'
       - uses: julia-actions/julia-buildpkg@v1
+        project: ${{ matrix.dir }}
+      #- uses: julia-actions/julia-docdeploy@v1
+      #  working-directory: ${{ matrix.dir }}
+      #  env:
+      #    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Install GitHubActions.jl in its own (shared) environment
+        run: |
+          using Pkg
+          Pkg.activate("docs-logger-env"; shared=true)
+          Pkg.add(Pkg.PackageSpec(name="GitHubActions", version="0.1"))
+        shell: julia --color=yes {0}
         working-directory: ${{ matrix.dir }}
-      - uses: julia-actions/julia-docdeploy@v1
+      - run: |
+          # The Julia command that will be executed
+          julia_cmd=( julia --color=yes --code-coverage --project=docs/ -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()' )
+          # Run the Julia command
+          "${julia_cmd[@]}"
+        shell: bash
         working-directory: ${{ matrix.dir }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: |
+          # The Julia command that will be executed
+          julia_cmd=( julia --color=yes --project=docs/ -e '
+              @eval Module() begin
+                  push!(LOAD_PATH, "@docs-logger-env") # access GitHubActions.jl
+                  import Logging, GitHubActions
+                  Logging.global_logger(GitHubActions.GitHubActionsLogger())
+                  pop!(LOAD_PATH)
+              end
+              include("docs/make.jl")' )
+          # Run the Julia command
+          "${julia_cmd[@]}"
+        shell: bash
+        working-directory: ${{ matrix.dir }}
       - run: |
           julia --project=docs -e '
             using Documenter: DocMeta, doctest
             using RandomGrowth
             DocMeta.setdocmeta!(RandomGrowth, :DocTestSetup, :(using RandomGrowth); recursive=true)
             doctest(RandomGrowth)'
+        working-directory: ${{ matrix.dir }}
