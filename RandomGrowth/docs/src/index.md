@@ -4,7 +4,7 @@ CurrentModule = RandomGrowth
 
 # RandomGrowth
 
-Documentation for [RandomGrowth](https://github.com/simeonschaub/RandomGrowth.jl).
+Documentation for [RandomGrowth](https://github.com/simeonschaub/random_growth).
 
 ```@index
 ```
