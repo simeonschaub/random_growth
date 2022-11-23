@@ -6,7 +6,7 @@ DocMeta.setdocmeta!(RandomGrowth, :DocTestSetup, :(using RandomGrowth); recursiv
 makedocs(;
     modules=[RandomGrowth],
     authors="Simeon David Schaub <simeondavidschaub99@gmail.com> and contributors",
-    repo="https://github.com/simeonschaub/random_growth/blob/{commit}/RandomGrowth{path}#{line}",
+    repo="https://github.com/simeonschaub/random_growth/blob/{commit}{path}#{line}",
     sitename="RandomGrowth.jl",
     format=Documenter.HTML(;
         prettyurls=get(ENV, "CI", "false") == "true",
