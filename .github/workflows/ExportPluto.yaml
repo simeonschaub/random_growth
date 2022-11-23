@@ -57,3 +57,4 @@ jobs:
                   folder: .
                   target-folder: notebooks
                   clean-exclude: 'RandomGrowth.jl'
+                  single-commit: true
