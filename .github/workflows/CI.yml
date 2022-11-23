@@ -35,9 +35,11 @@ jobs:
           arch: ${{ matrix.arch }}
       - uses: julia-actions/cache@v1
       - uses: julia-actions/julia-buildpkg@v1
-        project: ${{ matrix.dir }}
+        with:
+          project: ${{ matrix.dir }}
       - uses: julia-actions/julia-runtest@v1
-        project: ${{ matrix.dir }}
+        with:
+          project: ${{ matrix.dir }}
       - uses: julia-actions/julia-processcoverage@v1
         with:
           directories: ${{ matrix.dir }}/src
@@ -59,7 +61,8 @@ jobs:
         with:
           version: '1'
       - uses: julia-actions/julia-buildpkg@v1
-        project: ${{ matrix.dir }}
+        with:
+          project: ${{ matrix.dir }}
       #- uses: julia-actions/julia-docdeploy@v1
       #  working-directory: ${{ matrix.dir }}
       #  env:
