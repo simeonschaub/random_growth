@@ -127,24 +127,21 @@ function pdf_tracy_widom(t; t₀=6., solver=Tsit5(), kw...)
 	return -I′*exp(-I)
 end
 
-# ╔═╡ e0da8633-823c-498b-ae98-b1c98315463d
-data = let n=1000, p=.5
-	T = accumulate_corner_growth(rand(Geometric(p), (n, n)); shifted=false)
-
-	data = Float64[]
-	for I in CartesianIndices(T)
-		x, y = Tuple(I) .- 1
-		hypot(x, y) ≥ 100 || continue
-		γ, q = y/x, 1-p
-		push!(data, (T[I] - x*ω(γ, q)) / (σ(γ, q) * x^(1/3)))
+# ╔═╡ 7ed16d08-9925-4959-adb1-a297283891bd
+data = let N=100, γ=1, q=.7, num_trials=10000
+	M = round(Int, γ*N)
+	n = max(M, N)
+	map(1:num_trials) do _
+		T = accumulate_corner_growth(rand(Geometric(1-q), (n, n)); shifted=false)
+		(T[M, N] - N*ω(γ, q)) / (σ(γ, q) * N^(1/3))
 	end
-	data
 end
 
 # ╔═╡ a33e5804-3155-4e1e-b3f0-11f28d69fb5e
 begin
-	histogram(data; normalize=true, bins=30)
-	plot!(pdf_tracy_widom)
+	histogram(data; normalize=true, bins=range(-6, 4; length=51), label="T[M, N] - N*ω(γ, q)) / (σ(γ, q) * N^(1/3))", ylims=(0, .55))
+	plot!(pdf_tracy_widom; lw=3, label="pdf(TracyWidom())")
+	title!("Corner Growth Tracy-Widom")
 end
 
 # ╔═╡ c7f2c534-8738-43ee-b356-8d58f54ad8d2
@@ -2094,7 +2091,7 @@ version = "1.4.1+0"
 # ╠═9a97b92f-11a5-43da-ae20-4e68683c2628
 # ╠═41e5264d-9047-4755-b185-ee874d963d0b
 # ╠═7dedf41b-b29c-4d30-becd-e3ec054a86bc
-# ╠═e0da8633-823c-498b-ae98-b1c98315463d
+# ╠═7ed16d08-9925-4959-adb1-a297283891bd
 # ╠═a33e5804-3155-4e1e-b3f0-11f28d69fb5e
 # ╠═c7f2c534-8738-43ee-b356-8d58f54ad8d2
 # ╠═13615108-baa3-4663-8e0b-1a0e101a0f0f
