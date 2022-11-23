@@ -22,4 +22,5 @@ makedocs(;
 deploydocs(;
     repo="github.com/simeonschaub/random_growth",
     devbranch="main",
+    dirname="RandomGrowth.jl",
 )
