@@ -1,0 +1,72 @@
+name: CI
+on:
+  push:
+    branches:
+      - main
+    tags: ['*']
+  pull_request:
+concurrency:
+  # Skip intermediate builds: always.
+  # Cancel intermediate builds: only if it is a pull request build.
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ startsWith(github.ref, 'refs/pull/') }}
+jobs:
+  test:
+    name: ${{ matrix.dir }} - Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }} - ${{ github.event_name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        version:
+          - '1.0'
+          - '1.8'
+          - 'nightly'
+        os:
+          - ubuntu-latest
+        arch:
+          - x64
+        dir:
+          - RandomGrowth
+    steps:
+      - uses: actions/checkout@v2
+      - uses: julia-actions/setup-julia@v1
+        with:
+          version: ${{ matrix.version }}
+          arch: ${{ matrix.arch }}
+      - uses: julia-actions/cache@v1
+      - uses: julia-actions/julia-buildpkg@v1
+        working-directory: ${{ matrix.dir }}
+      - uses: julia-actions/julia-runtest@v1
+        working-directory: ${{ matrix.dir }}
+      - uses: julia-actions/julia-processcoverage@v1
+        working-directory: ${{ matrix.dir }}
+      - uses: codecov/codecov-action@v2
+        working-directory: ${{ matrix.dir }}
+        with:
+          files: lcov.info
+  docs:
+    name: Documentation
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        dir:
+          - RandomGrowth
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v2
+      - uses: julia-actions/setup-julia@v1
+        with:
+          version: '1'
+      - uses: julia-actions/julia-buildpkg@v1
+        working-directory: ${{ matrix.dir }}
+      - uses: julia-actions/julia-docdeploy@v1
+        working-directory: ${{ matrix.dir }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: |
+          julia --project=docs -e '
+            using Documenter: DocMeta, doctest
+            using RandomGrowth
+            DocMeta.setdocmeta!(RandomGrowth, :DocTestSetup, :(using RandomGrowth); recursive=true)
+            doctest(RandomGrowth)'
