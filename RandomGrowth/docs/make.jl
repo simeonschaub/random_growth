@@ -5,12 +5,12 @@ DocMeta.setdocmeta!(RandomGrowth, :DocTestSetup, :(using RandomGrowth); recursiv
 
 makedocs(;
     modules=[RandomGrowth],
-    authors="Simeon David Schaub <schaub@mit.edu> and contributors",
-    repo="https://github.com/simeonschaub/RandomGrowth.jl/blob/{commit}{path}#{line}",
+    authors="Simeon David Schaub <simeondavidschaub99@gmail.com> and contributors",
+    repo="https://github.com/simeonschaub/random_growth/blob/{commit}/RandomGrowth{path}#{line}",
     sitename="RandomGrowth.jl",
     format=Documenter.HTML(;
         prettyurls=get(ENV, "CI", "false") == "true",
-        canonical="https://simeonschaub.github.io/RandomGrowth.jl",
+        canonical="https://simeonschaub.github.io/random_growth",
         edit_link="main",
         assets=String[],
     ),
@@ -20,6 +20,6 @@ makedocs(;
 )
 
 deploydocs(;
-    repo="github.com/simeonschaub/RandomGrowth.jl",
+    repo="github.com/simeonschaub/random_growth",
     devbranch="main",
 )
