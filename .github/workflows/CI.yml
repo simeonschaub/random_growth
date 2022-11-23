@@ -95,6 +95,8 @@ jobs:
           "${julia_cmd[@]}"
         shell: bash
         working-directory: ${{ matrix.dir }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: |
           julia --project=docs -e '
             using Documenter: DocMeta, doctest
