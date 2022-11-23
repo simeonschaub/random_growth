@@ -54,5 +54,6 @@ jobs:
               with:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
                   branch: gh-pages
-                  folder: notebooks
+                  folder: .
+                  target-folder: notebooks
                   clean-exclude: 'RandomGrowth.jl'
