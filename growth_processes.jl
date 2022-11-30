@@ -15,7 +15,7 @@ macro bind(def, element)
 end
 
 # ╔═╡ d4c4dc1a-2d36-11ec-2796-c162f03598f0
-using Distributions, Images, Base64, ColorSchemes, Plots, ImplicitEquations, LaTeXStrings, PlutoUI
+using Distributions, Images, Base64, ColorSchemes, Plots, LaTeXStrings, PlutoUI
 
 # ╔═╡ 313f5918-1e94-45a6-b1fd-29c9b5aaf35d
 using LinearAlgebra, SpecialFunctions, FastGaussQuadrature, ForwardDiff
@@ -108,11 +108,31 @@ let n=1000, p=.5, t=max_t
 	plot(img, ylims=(0, n), xlims=(0, n), yflip=false, size=(700, 700))
 	q = 1 - p
 	show_ellipse && for s in (1, -1)
-		plot!(lw=2, c=:green, legend=false) do x
+		plot!(lw=2, c=:green, label=false) do x
 			s*2√(-q^2*t*x + q^2*x^2 + q*t*x - q*x^2) - q*t + 2q*x + t - x
 		end
 	end
 	title!(L"Corner Growth with $p=%$p_corner$ after $n=%$t$ Steps")
+end
+
+# ╔═╡ 939ed01e-9894-4a94-b673-ca027a3c8ec8
+Tₑ = let n=1000
+	accumulate_corner_growth(rand(Exponential(), (n, n)); shifted=false)
+end;
+
+# ╔═╡ df0ad4e6-761f-4d6a-a763-675542f0c2ed
+let n=1000, p=.5, t=max_t
+	T = Tₑ
+
+	img = map(c -> ARGB(ColorSchemes.inferno[(c / t)^2], c ≤ t), T)
+	plot(img, ylims=(0, n), xlims=(0, n), yflip=false, size=(700, 700))
+	q = 1 - p
+	show_ellipse && for s in (1, -1)
+		plot!(lw=2, c=:green, label=(s==1) && L"\sqrt{x} + \sqrt{y} = \sqrt{n}") do x
+			t*(1 + s*√(x/t))^2
+		end
+	end
+	title!(L"Exponential Growth with $n=%$t$ Steps")
 end
 
 # ╔═╡ 9a97b92f-11a5-43da-ae20-4e68683c2628
@@ -168,7 +188,6 @@ Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
 FastGaussQuadrature = "442a2c76-b920-505d-bb47-c5924d526838"
 ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
 Images = "916415d5-f1e6-5110-898d-aaa5f9f070e0"
-ImplicitEquations = "95701278-4526-5785-aba3-513cca398f19"
 LaTeXStrings = "b964fa9f-0449-5b57-a5c2-d3ea65f4040f"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
@@ -181,7 +200,6 @@ Distributions = "~0.25.79"
 FastGaussQuadrature = "~0.5.0"
 ForwardDiff = "~0.10.33"
 Images = "~0.25.2"
-ImplicitEquations = "~1.0.9"
 LaTeXStrings = "~1.3.0"
 Plots = "~1.36.3"
 PlutoUI = "~0.7.49"
@@ -194,7 +212,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.8.3"
 manifest_format = "2.0"
-project_hash = "d9639b657f2cd42471ae70edb5d7c0bac53398f9"
+project_hash = "b59f3e3acb50c10b9a29045e3d2c924e1827e1e8"
 
 [[deps.AbstractFFTs]]
 deps = ["ChainRulesCore", "LinearAlgebra"]
@@ -257,18 +275,6 @@ version = "1.0.8+0"
 git-tree-sha1 = "eb4cb44a499229b3b8426dcfb5dd85333951ff90"
 uuid = "fa961155-64e5-5f13-b03f-caf6b980ea82"
 version = "0.4.2"
-
-[[deps.CRlibm]]
-deps = ["CRlibm_jll"]
-git-tree-sha1 = "32abd86e3c2025db5172aa182b982debed519834"
-uuid = "96374032-68de-5a5b-8d9e-752f78720389"
-version = "1.0.1"
-
-[[deps.CRlibm_jll]]
-deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
-git-tree-sha1 = "e329286945d0cfc04456972ea732551869af1cfc"
-uuid = "4e9b3aee-d8a1-5a3d-ad8b-7d824db253f0"
-version = "1.0.1+0"
 
 [[deps.Cairo_jll]]
 deps = ["Artifacts", "Bzip2_jll", "Fontconfig_jll", "FreeType2_jll", "Glib_jll", "JLLWrappers", "LZO_jll", "Libdl", "Pixman_jll", "Pkg", "Xorg_libXext_jll", "Xorg_libXrender_jll", "Zlib_jll", "libpng_jll"]
@@ -335,11 +341,6 @@ deps = ["ColorTypes", "FixedPointNumbers", "Reexport"]
 git-tree-sha1 = "417b0ed7b8b838aa6ca0a87aadf1bb9eb111ce40"
 uuid = "5ae59095-9a9b-59fe-a467-6f913c188581"
 version = "0.12.8"
-
-[[deps.CommonEq]]
-git-tree-sha1 = "d1beba82ceee6dc0fce8cb6b80bf600bbde66381"
-uuid = "3709ef60-1bee-4518-9f2f-acd86f176c50"
-version = "0.2.0"
 
 [[deps.CommonSubexpressions]]
 deps = ["MacroTools", "Test"]
@@ -449,11 +450,6 @@ git-tree-sha1 = "5837a837389fccf076445fce071c8ddaea35a566"
 uuid = "fa6b7ba4-c1ee-5f82-b5fc-ecf0adba8f74"
 version = "0.6.8"
 
-[[deps.ErrorfreeArithmetic]]
-git-tree-sha1 = "d6863c556f1142a061532e79f611aa46be201686"
-uuid = "90fa49ef-747e-5e6f-a989-263ba693cf1a"
-version = "0.5.2"
-
 [[deps.Expat_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
 git-tree-sha1 = "bad72f730e9e91c08d9427d5e8db95478a3c323d"
@@ -495,12 +491,6 @@ deps = ["LinearAlgebra", "SpecialFunctions", "StaticArrays"]
 git-tree-sha1 = "1dfc97ea0df8b3689c2608db8bf28b3fc4f4147b"
 uuid = "442a2c76-b920-505d-bb47-c5924d526838"
 version = "0.5.0"
-
-[[deps.FastRounding]]
-deps = ["ErrorfreeArithmetic", "LinearAlgebra"]
-git-tree-sha1 = "6344aa18f654196be82e62816935225b3b9abe44"
-uuid = "fa42c844-2597-5d31-933b-ebd51ab2693f"
-version = "0.3.1"
 
 [[deps.FileIO]]
 deps = ["Pkg", "Requires", "UUIDs"]
@@ -750,12 +740,6 @@ git-tree-sha1 = "87f7662e03a649cffa2e05bf19c303e168732d3e"
 uuid = "905a6f67-0a94-5f89-b386-d35d92009cd1"
 version = "3.1.2+0"
 
-[[deps.ImplicitEquations]]
-deps = ["CommonEq", "IntervalArithmetic", "RecipesBase", "Test", "Unicode"]
-git-tree-sha1 = "74f1561c5f20bd407bc7981afae738b6695f2015"
-uuid = "95701278-4526-5785-aba3-513cca398f19"
-version = "1.0.9"
-
 [[deps.IndirectArrays]]
 git-tree-sha1 = "012e604e1c7458645cb8b436f8fba789a51b257f"
 uuid = "9b13fd28-a010-5f03-acff-a1bbcff69959"
@@ -792,12 +776,6 @@ deps = ["Adapt", "AxisAlgorithms", "ChainRulesCore", "LinearAlgebra", "OffsetArr
 git-tree-sha1 = "842dd89a6cb75e02e85fdd75c760cdc43f5d6863"
 uuid = "a98d9a8b-a2ab-59e6-89dd-64a1c18fca59"
 version = "0.14.6"
-
-[[deps.IntervalArithmetic]]
-deps = ["CRlibm", "FastRounding", "LinearAlgebra", "Markdown", "Random", "RecipesBase", "RoundingEmulator", "SetRounding", "StaticArrays"]
-git-tree-sha1 = "c1c88395d09366dae431556bcb598ad08fa1392b"
-uuid = "d1acc4aa-44c8-5952-acd4-ba5d80a2a253"
-version = "0.20.8"
 
 [[deps.IntervalSets]]
 deps = ["Dates", "Random", "Statistics"]
@@ -1329,11 +1307,6 @@ git-tree-sha1 = "793b6ef92f9e96167ddbbd2d9685009e200eb84f"
 uuid = "6038ab10-8711-5258-84ad-4b1120ba62dc"
 version = "1.3.3"
 
-[[deps.RoundingEmulator]]
-git-tree-sha1 = "40b9edad2e5287e05bd413a38f61a8ff55b9557b"
-uuid = "5eaf0fd0-dfba-4ccb-bf02-d820a40db705"
-version = "0.2.1"
-
 [[deps.SHA]]
 uuid = "ea8e919c-243c-51af-8825-aaa63cd721ce"
 version = "0.7.0"
@@ -1346,11 +1319,6 @@ version = "1.1.1"
 
 [[deps.Serialization]]
 uuid = "9e88b42a-f829-5b0c-bbe9-9e923198166b"
-
-[[deps.SetRounding]]
-git-tree-sha1 = "d7a25e439d07a17b7cdf97eecee504c50fedf5f6"
-uuid = "3cc68bcd-71a2-5612-b932-767ffbe40ab0"
-version = "0.2.1"
 
 [[deps.SharedArrays]]
 deps = ["Distributed", "Mmap", "Random", "Serialization"]
@@ -1783,6 +1751,8 @@ version = "1.4.1+0"
 # ╠═904a3da5-5b0f-46af-98ad-f262d3f1afb5
 # ╟─a2aa704a-ebad-4b71-b589-84908481cc70
 # ╠═5e47a00b-a38e-4071-b44b-eb1b5661b968
+# ╠═939ed01e-9894-4a94-b673-ca027a3c8ec8
+# ╠═df0ad4e6-761f-4d6a-a763-675542f0c2ed
 # ╠═9a97b92f-11a5-43da-ae20-4e68683c2628
 # ╠═41e5264d-9047-4755-b185-ee874d963d0b
 # ╠═34b6361c-c631-4509-84df-3acbd468b2d0
