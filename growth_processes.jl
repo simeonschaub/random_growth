@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.14
+# v0.19.19
 
 using Markdown
 using InteractiveUtils
@@ -19,6 +19,9 @@ using Distributions, Images, Base64, ColorSchemes, Plots, LaTeXStrings, PlutoUI
 
 # ╔═╡ 313f5918-1e94-45a6-b1fd-29c9b5aaf35d
 using LinearAlgebra, SpecialFunctions, FastGaussQuadrature, ForwardDiff
+
+# ╔═╡ 3004a0be-c096-43bb-9541-824ff4dd00f5
+using Serialization
 
 # ╔═╡ 815a40e8-c528-4384-a4ec-e71724891ed1
 function diagonal(M, i)
@@ -221,7 +224,7 @@ let num_trials=5000, γ=1/2
 end
 
 # ╔═╡ b889439f-58f7-4059-b57c-b2eef5229124
-let num_trials=5000, γ=2
+let num_trials=5000, γ=1.1
 	plot()
 	dist = Exponential()
 	for N in [100] #[10, 20, 40]
@@ -237,6 +240,28 @@ let num_trials=5000, γ=2
 	plot!(pdf_tracy_widom; lw=3, label="pdf(TracyWidom())")
 end
 
+# ╔═╡ b1175f17-cfa8-493c-a78e-7d836c46a49c
+let num_trials=20000, γ=1.1
+	plot()
+	dist = Exponential()
+	data_exps = Vector{Float64}[]
+	for N in [100, 110] #[10, 20, 40]
+		M = round(Int, (20 - √N)^2)
+		@show M
+		n = max(M, N)
+		data_exp = map(1:num_trials) do _
+			T = accumulate_corner_growth(rand(dist, (n, n)); shifted=false)
+			(T[M, N] - N*(1+√γ)^2) / (γ^(-1/6) * (1+√γ)^(4/3) * N^(1/3))
+		end
+		push!(data_exps, data_exp)
+		#histogram!(data_exp; normalize=true, bins=range(-6, 4; length=51), label="(T[M, N] - N*ω(γ, q)) / (σ(γ, q) * N^(1/3))")
+	end
+	histogram2d(collect(zip(data_exps...)), normalize=true, bins=100)
+	serialize("/tmp/airy.dat", collect(zip(data_exps...)))
+	title!("Exponential Growth Tracy-Widom")
+	#plot!(pdf_tracy_widom; lw=3, label="pdf(TracyWidom())")
+end
+
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
 [deps]
@@ -250,6 +275,7 @@ LaTeXStrings = "b964fa9f-0449-5b57-a5c2-d3ea65f4040f"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
 PlutoUI = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
+Serialization = "9e88b42a-f829-5b0c-bbe9-9e923198166b"
 SpecialFunctions = "276daf66-3868-5448-9aa4-cd146d93841b"
 
 [compat]
@@ -268,9 +294,9 @@ SpecialFunctions = "~2.1.7"
 PLUTO_MANIFEST_TOML_CONTENTS = """
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.8.3"
+julia_version = "1.8.4"
 manifest_format = "2.0"
-project_hash = "4b3f63130f8389366ead122fd840206f1c7b8fa3"
+project_hash = "30af5fdc81c4d340ed382bd3321231e72ca5e87d"
 
 [[deps.AbstractFFTs]]
 deps = ["ChainRulesCore", "LinearAlgebra"]
@@ -335,7 +361,7 @@ uuid = "fa961155-64e5-5f13-b03f-caf6b980ea82"
 version = "0.4.2"
 
 [[deps.Cairo_jll]]
-deps = ["Artifacts", "Bzip2_jll", "Fontconfig_jll", "FreeType2_jll", "Glib_jll", "JLLWrappers", "LZO_jll", "Libdl", "Pixman_jll", "Pkg", "Xorg_libXext_jll", "Xorg_libXrender_jll", "Zlib_jll", "libpng_jll"]
+deps = ["Artifacts", "Bzip2_jll", "CompilerSupportLibraries_jll", "Fontconfig_jll", "FreeType2_jll", "Glib_jll", "JLLWrappers", "LZO_jll", "Libdl", "Pixman_jll", "Pkg", "Xorg_libXext_jll", "Xorg_libXrender_jll", "Zlib_jll", "libpng_jll"]
 git-tree-sha1 = "4b859a208b2397a7a623a03449e4636bdb17bcf2"
 uuid = "83423d85-b0ee-5818-9007-b63ccbeb887a"
 version = "1.16.1+1"
@@ -415,7 +441,7 @@ version = "4.5.0"
 [[deps.CompilerSupportLibraries_jll]]
 deps = ["Artifacts", "Libdl"]
 uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
-version = "0.5.2+0"
+version = "1.0.1+0"
 
 [[deps.ComputationalResources]]
 git-tree-sha1 = "52cb3ec90e8a8bea0e62e275ba577ad0f74821f7"
@@ -1820,5 +1846,7 @@ version = "1.4.1+0"
 # ╠═4270d02f-891c-41a0-bc15-a011893103d6
 # ╠═fd4a0cd2-66fb-4dcd-ba2a-0d5395e53657
 # ╠═b889439f-58f7-4059-b57c-b2eef5229124
+# ╠═b1175f17-cfa8-493c-a78e-7d836c46a49c
+# ╠═3004a0be-c096-43bb-9541-824ff4dd00f5
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
