@@ -23,25 +23,15 @@ using LinearAlgebra, SpecialFunctions, FastGaussQuadrature, ForwardDiff
 # ╔═╡ 3004a0be-c096-43bb-9541-824ff4dd00f5
 using Serialization
 
+# ╔═╡ 91171b75-3ab0-4d1b-a72b-c50413de6509
+using HypertextLiteral, AbstractPlutoDingetjes.Bonds
+
 # ╔═╡ 815a40e8-c528-4384-a4ec-e71724891ed1
 function diagonal(M, i)
 	n = size(M, 1)
 	return Iterators.map(i > n ? (i-n+1:n) : (1:i)) do j
 		CartesianIndex(j, i+1-j)
 	end
-end
-
-# ╔═╡ 622f6669-7c25-4acd-bbff-6bdc0b4f4019
-function accumulate_corner_growth(W, n=size(W, 1); shifted=true, init=0)
-	T = fill!(similar(W), typemax(Int))
-	T[1, 1] = W[1, 1]#init
-	for i in 2:2n
-		for I in diagonal(W, i)
-			neighbors = (I,) .- CartesianIndex.((0, 1), (1, 0))
-			T[I] = W[I] + maximum(I -> get(T, I, 0), neighbors) + shifted
-		end
-	end
-	return T
 end
 
 # ╔═╡ f71384ce-53fb-443f-91ab-50a5adbb4aec
@@ -52,9 +42,6 @@ n_corner = 200
 
 # ╔═╡ 167c3bf2-63f5-49d9-ab25-8f50ee0e8c62
 W_corner = rand(Geometric(p_corner), (n_corner, n_corner));
-
-# ╔═╡ 935d78a0-7094-4b99-b0ec-ac6352c29794
-T_corner = accumulate_corner_growth(W_corner);
 
 # ╔═╡ 4e908822-c013-484e-8801-3833f6cb6c5b
 render(img, format="png") = HTML("""
@@ -73,69 +60,6 @@ function plot_growth(T; color::Bool=false, fps=30, max_t=maximum(T))
 		gif = Images.gif(t -> T .≥ t, 0:max_t; fps)
 	end
 	return render(gif, :gif)
-end
-
-# ╔═╡ 6d9c7cbf-49a1-493a-ab80-8d620c636286
-plot_growth(T_corner, max_t=600)
-
-# ╔═╡ afc35470-768c-49f1-a3b8-43566228822e
-plot_growth(T_corner; color=true, max_t=600)
-
-# ╔═╡ bfe78dd0-d4c8-40ff-8ad3-88f45a6490c8
-let n=1000, p=.5, t = 1500
-	T = accumulate_corner_growth(rand(Geometric(p), (n, n)), t)
-	@show findlast(≤(t), view(T, 1, :))
-	@show findlast(≤(t), view(T, :, 1))
-	@show t * mean(Geometric(.5))
-	
-	map(c -> ARGB(ColorSchemes.inferno[(c / t)^2], c ≤ t), T)
-	Gray.(T .> t) |> render
-end
-
-# ╔═╡ 904a3da5-5b0f-46af-98ad-f262d3f1afb5
-Tᵢ = let n=1000, p=.5
-	accumulate_corner_growth(rand(Geometric(p), (n, n)))
-end;
-
-# ╔═╡ a2aa704a-ebad-4b71-b589-84908481cc70
-md"""
-Show after step $(@bind max_t Slider(0:2000; default=2000, show_value=true))
-
-Show Ellipse $(@bind show_ellipse PlutoUI.CheckBox())"""
-
-# ╔═╡ 5e47a00b-a38e-4071-b44b-eb1b5661b968
-let n=1000, p=.5, t=max_t
-	T = Tᵢ
-	
-	img = map(c -> ARGB(ColorSchemes.inferno[(c / t)^2], c ≤ t), T)
-	plot(img, ylims=(0, n), xlims=(0, n), yflip=false, size=(700, 700))
-	q = 1 - p
-	show_ellipse && for s in (1, -1)
-		plot!(lw=2, c=:green, label=false) do x
-			s*2√(-q^2*t*x + q^2*x^2 + q*t*x - q*x^2) - q*t + 2q*x + t - x
-		end
-	end
-	title!(L"Corner Growth with $p=%$p_corner$ after $n=%$t$ Steps")
-end
-
-# ╔═╡ 939ed01e-9894-4a94-b673-ca027a3c8ec8
-Tₑ = let n=1000
-	accumulate_corner_growth(rand(Exponential(), (n, n)); shifted=false)
-end;
-
-# ╔═╡ df0ad4e6-761f-4d6a-a763-675542f0c2ed
-let n=1000, p=.5, t=max_t
-	T = Tₑ
-
-	img = map(c -> ARGB(ColorSchemes.inferno[(c / t)^2], c ≤ t), T)
-	plot(img, ylims=(0, n), xlims=(0, n), yflip=false, size=(700, 700))
-	q = 1 - p
-	show_ellipse && for s in (1, -1)
-		plot!(lw=2, c=:green, label=(s==1) && L"\sqrt{x} + \sqrt{y} = \sqrt{n}") do x
-			t*(1 + s*√(x/t))^2
-		end
-	end
-	title!(L"Exponential Growth with $n=%$t$ Steps")
 end
 
 # ╔═╡ 9a97b92f-11a5-43da-ae20-4e68683c2628
@@ -165,6 +89,104 @@ let
 	global pdf_tracy_widom(s; n=100) = ForwardDiff.derivative(t->det(I-K(t; n)), s)
 end
 
+# ╔═╡ 4270d02f-891c-41a0-bc15-a011893103d6
+data_legendre = let n=1, num_trials=5000
+	map(1:num_trials) do _
+		#L = randn(n,n) + im*randn(n,n)
+		maximum(abs2, svdvals(randn(n,n) + im*randn(n,n)))
+		#maximum(eigvals(Hermitian(L'L)))
+	end
+end
+
+# ╔═╡ de06fca9-d48c-45a0-a351-619364412745
+begin
+	struct SeekingSlider
+		r::UnitRange{Int}
+		default::Int
+	end
+	function Base.show(io::IO, ::MIME"text/html", (; r, default)::SeekingSlider)
+		print(io, @htl("""
+		<span>
+		<input $((id="f", type="button", value="<<"))/>
+		<input $((id="m", type="button", value="<"))/>
+		<input $((id="s", type="range", min=r.start, max=r.stop)) style="vertical-align: middle"/>
+		<input $((id="p", type="button", value=">"))/>
+		<input $((id="l", type="button", value=">>"))/>
+		<span id="t" style="margin-left: 1em">$default</span>
+
+		<script>
+		const span = currentScript.parentElement
+		const slider = span.querySelector("#s")
+
+		function get() {
+			return slider.value
+		}
+		function set(val){
+		    val = Math.min(Math.max(val, $(r.start)), $(r.stop));
+			slider.value = val
+			span.querySelector("#t").textContent = val
+			span.value = val
+			span.dispatchEvent(new CustomEvent("input"))
+		}
+
+		span.querySelector("#f").onclick = () => set($(r.start))
+		span.querySelector("#l").onclick = () => set($(r.stop))
+		span.querySelector("#m").onclick = () => set(+get() - 1)
+		span.querySelector("#p").onclick = () => set(+get() + 1)
+		slider.oninput = () => set(get())
+		set($default)
+		</script>
+		</span>
+		"""))
+	end
+	Base.get((; default)::SeekingSlider) = default
+	Bonds.initial_value((; default)::SeekingSlider) = default
+	Bonds.possible_values((; r)::SeekingSlider) = r
+end
+
+# ╔═╡ 622f6669-7c25-4acd-bbff-6bdc0b4f4019
+function accumulate_corner_growth(W, n=size(W, 1); shifted=true, init=0)
+	T = fill!(similar(W), typemax(Int))
+	T[1, 1] = W[1, 1]#init
+	for i in 2:2n
+		for I in diagonal(W, i)
+			neighbors = (I,) .- CartesianIndex.((0, 1), (1, 0))
+			T[I] = W[I] + maximum(I -> get(T, I, 0), neighbors) + shifted
+		end
+	end
+	return T
+end
+
+# ╔═╡ 935d78a0-7094-4b99-b0ec-ac6352c29794
+T_corner = accumulate_corner_growth(W_corner);
+
+# ╔═╡ 6d9c7cbf-49a1-493a-ab80-8d620c636286
+plot_growth(T_corner, max_t=600)
+
+# ╔═╡ afc35470-768c-49f1-a3b8-43566228822e
+plot_growth(T_corner; color=true, max_t=600)
+
+# ╔═╡ bfe78dd0-d4c8-40ff-8ad3-88f45a6490c8
+let n=1000, p=.5, t = 1500
+	T = accumulate_corner_growth(rand(Geometric(p), (n, n)), t)
+	@show findlast(≤(t), view(T, 1, :))
+	@show findlast(≤(t), view(T, :, 1))
+	@show t * mean(Geometric(.5))
+
+	map(c -> ARGB(ColorSchemes.inferno[(c / t)^2], c ≤ t), T)
+	Gray.(T .> t) |> render
+end
+
+# ╔═╡ 904a3da5-5b0f-46af-98ad-f262d3f1afb5
+Tᵢ = let n=1000, p=.5
+	accumulate_corner_growth(rand(Geometric(p), (n, n)))
+end;
+
+# ╔═╡ 939ed01e-9894-4a94-b673-ca027a3c8ec8
+Tₑ = let n=1000
+	accumulate_corner_growth(rand(Exponential(), (n, n)); shifted=false)
+end;
+
 # ╔═╡ 7ed16d08-9925-4959-adb1-a297283891bd
 data = let N=100, γ=1, q=.7, num_trials=10000
 	M = round(Int, γ*N)
@@ -189,15 +211,6 @@ data_exp = let N=1, γ=2, num_trials=10000
 	map(1:num_trials) do _
 		T = accumulate_corner_growth(rand(Exponential(), (n, n)); shifted=false)
 		(T[M, N] - N*(1 + √γ)^2)
-	end
-end
-
-# ╔═╡ 4270d02f-891c-41a0-bc15-a011893103d6
-data_legendre = let n=1, num_trials=5000
-	map(1:num_trials) do _
-		#L = randn(n,n) + im*randn(n,n)
-		maximum(abs2, svdvals(randn(n,n) + im*randn(n,n)))
-		#maximum(eigvals(Hermitian(L'L)))
 	end
 end
 
@@ -262,14 +275,52 @@ let num_trials=20000, γ=1.1
 	#plot!(pdf_tracy_widom; lw=3, label="pdf(TracyWidom())")
 end
 
+# ╔═╡ a2aa704a-ebad-4b71-b589-84908481cc70
+md"""
+Show after step $(@bind max_t SeekingSlider(0:2000, 2000))
+
+Show Ellipse $(@bind show_ellipse PlutoUI.CheckBox(; default=true))"""
+
+# ╔═╡ 5e47a00b-a38e-4071-b44b-eb1b5661b968
+let n=1000, p=.5, t=max_t
+	T = Tᵢ
+
+	img = map(c -> ARGB(ColorSchemes.inferno[(c / t)^2], c ≤ t), T)
+	plot(img, ylims=(0, n), xlims=(0, n), yflip=false, size=(700, 700))
+	q = 1 - p
+	show_ellipse && for s in (1, -1)
+		plot!(lw=2, c=:green, label=false) do x
+			s*2√(-q^2*t*x + q^2*x^2 + q*t*x - q*x^2) - q*t + 2q*x + t - x
+		end
+	end
+	title!(L"Corner Growth with $p=%$p_corner$ after $n=%$t$ Steps")
+end
+
+# ╔═╡ df0ad4e6-761f-4d6a-a763-675542f0c2ed
+let n=1000, p=.5, t=max_t
+	T = Tₑ
+
+	img = map(c -> ARGB(ColorSchemes.inferno[(c / t)^2], c ≤ t), T)
+	plot(img, ylims=(0, n), xlims=(0, n), yflip=false, size=(700, 700))
+	q = 1 - p
+	show_ellipse && for s in (1, -1)
+		plot!(lw=2, c=:green, label=(s==1) && L"\sqrt{x} + \sqrt{y} = \sqrt{n}") do x
+			t*(1 + s*√(x/t))^2
+		end
+	end
+	title!(L"Exponential Growth with $n=%$t$ Steps")
+end
+
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
 [deps]
+AbstractPlutoDingetjes = "6e696c72-6542-2067-7265-42206c756150"
 Base64 = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
 ColorSchemes = "35d6a980-a343-548e-a6ea-1d62b119f2f4"
 Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
 FastGaussQuadrature = "442a2c76-b920-505d-bb47-c5924d526838"
 ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
+HypertextLiteral = "ac1192a8-f4b3-4bfe-ba22-af5b92cd3ab2"
 Images = "916415d5-f1e6-5110-898d-aaa5f9f070e0"
 LaTeXStrings = "b964fa9f-0449-5b57-a5c2-d3ea65f4040f"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
@@ -279,10 +330,12 @@ Serialization = "9e88b42a-f829-5b0c-bbe9-9e923198166b"
 SpecialFunctions = "276daf66-3868-5448-9aa4-cd146d93841b"
 
 [compat]
+AbstractPlutoDingetjes = "~1.2.0"
 ColorSchemes = "~3.24.0"
 Distributions = "~0.25.79"
 FastGaussQuadrature = "~0.5.0"
 ForwardDiff = "~0.10.34"
+HypertextLiteral = "~0.9.4"
 Images = "~0.25.2"
 LaTeXStrings = "~1.3.0"
 Plots = "~1.39.0"
@@ -296,7 +349,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.9.3"
 manifest_format = "2.0"
-project_hash = "3f39a8d10c1b29d7af1014cf89994bc9130b6040"
+project_hash = "eb521d79972432b720edb8db36df9f31ca645e2f"
 
 [[deps.AbstractFFTs]]
 deps = ["LinearAlgebra"]
@@ -1976,5 +2029,7 @@ version = "1.4.1+1"
 # ╠═b889439f-58f7-4059-b57c-b2eef5229124
 # ╠═b1175f17-cfa8-493c-a78e-7d836c46a49c
 # ╠═3004a0be-c096-43bb-9541-824ff4dd00f5
+# ╠═91171b75-3ab0-4d1b-a72b-c50413de6509
+# ╠═de06fca9-d48c-45a0-a351-619364412745
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
