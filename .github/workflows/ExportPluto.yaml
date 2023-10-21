@@ -20,7 +20,7 @@ jobs:
             - name: Install Julia
               uses: julia-actions/setup-julia@v1
               with:
-                  version: "1.8"
+                  version: "1" # This will automatically pick the latest Julia version
 
             - name: Cache Julia artifacts & such
               uses: julia-actions/cache@v1
@@ -40,14 +40,16 @@ jobs:
                 julia -e 'using Pkg
                   Pkg.activate(mktempdir())
                   Pkg.add([
-                    Pkg.PackageSpec(name="PlutoSliderServer", version="0.3.2-0.3"),
+                    Pkg.PackageSpec(name="PlutoSliderServer", rev="static-export-1"),
                   ])
                   import PlutoSliderServer
                   PlutoSliderServer.github_action(".";
                     Export_cache_dir="pluto_state_cache",
-                    Export_baked_notebookfile=false,
-                    Export_baked_state=false,
+                    Export_baked_notebookfile=true,
+                    Export_baked_state=true,
                     # more parameters can go here
+                    Precompute_enabled=true,
+                    Precompute_max_filesize_per_group=100_000_000,
                   )'
             - name: Deploy to gh-pages
               uses: JamesIves/github-pages-deploy-action@releases/v4
