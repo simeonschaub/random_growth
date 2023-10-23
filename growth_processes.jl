@@ -101,7 +101,7 @@ end
 # ╔═╡ de06fca9-d48c-45a0-a351-619364412745
 begin
 	struct SeekingSlider
-		r::UnitRange{Int}
+		r::StepRange{Int, Int}
 		default::Int
 	end
 	function Base.show(io::IO, ::MIME"text/html", (; r, default)::SeekingSlider)
@@ -109,7 +109,7 @@ begin
 		<span>
 		<input $((id="f", type="button", value="<<"))/>
 		<input $((id="m", type="button", value="<"))/>
-		<input $((id="s", type="range", min=r.start, max=r.stop)) style="vertical-align: middle"/>
+		<input $((id="s", type="range", min=r.start, max=r.stop, step=r.step)) style="vertical-align: middle"/>
 		<input $((id="p", type="button", value=">"))/>
 		<input $((id="l", type="button", value=">>"))/>
 		<span id="t" style="margin-left: 1em">$default</span>
@@ -131,8 +131,8 @@ begin
 
 		span.querySelector("#f").onclick = () => set($(r.start))
 		span.querySelector("#l").onclick = () => set($(r.stop))
-		span.querySelector("#m").onclick = () => set(+get() - 1)
-		span.querySelector("#p").onclick = () => set(+get() + 1)
+		span.querySelector("#m").onclick = () => set(+get() - $(r.step))
+		span.querySelector("#p").onclick = () => set(+get() + $(r.step))
 		slider.oninput = () => set(get())
 		set($default)
 		</script>
@@ -277,7 +277,7 @@ end
 
 # ╔═╡ a2aa704a-ebad-4b71-b589-84908481cc70
 md"""
-Show after step $(@bind max_t SeekingSlider(0:2000, 2000))
+Show after step $(@bind max_t SeekingSlider(0:100:2000, 2000))
 
 Show Ellipse $(@bind show_ellipse PlutoUI.CheckBox(; default=true))"""
 
@@ -1695,13 +1695,10 @@ uuid = "06e1c1a7-607b-532d-9fad-de7d9aa2abac"
 version = "0.3.1"
 
 [[deps.TranscodingStreams]]
-git-tree-sha1 = "49cbf7c74fafaed4c529d47d48c8f7da6a19eb75"
+deps = ["Random", "Test"]
+git-tree-sha1 = "9a6ae7ed916312b41236fcef7e0af564ef934769"
 uuid = "3bb67fe8-82b1-5028-8e26-92a6c54297fa"
-version = "0.10.1"
-weakdeps = ["Random", "Test"]
-
-    [deps.TranscodingStreams.extensions]
-    TestExt = ["Test", "Random"]
+version = "0.9.13"
 
 [[deps.Tricks]]
 git-tree-sha1 = "eae1bb484cd63b36999ee58be2de6c178105112f"
