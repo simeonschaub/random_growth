@@ -255,7 +255,6 @@ end
 
 # ╔═╡ b1175f17-cfa8-493c-a78e-7d836c46a49c
 let num_trials=20000, γ=1.1
-	plot()
 	dist = Exponential()
 	data_exps = Vector{Float64}[]
 	for N in [100, 110] #[10, 20, 40]
@@ -267,12 +266,10 @@ let num_trials=20000, γ=1.1
 			(T[M, N] - N*(1+√γ)^2) / (γ^(-1/6) * (1+√γ)^(4/3) * N^(1/3))
 		end
 		push!(data_exps, data_exp)
-		#histogram!(data_exp; normalize=true, bins=range(-6, 4; length=51), label="(T[M, N] - N*ω(γ, q)) / (σ(γ, q) * N^(1/3))")
 	end
-	histogram2d(collect(zip(data_exps...)), normalize=true, bins=100)
+	p, = histogram2d(collect(zip(data_exps...)), normalize=true, bins=100)
 	serialize("/tmp/airy.dat", collect(zip(data_exps...)))
-	title!("Exponential Growth Tracy-Widom")
-	#plot!(pdf_tracy_widom; lw=3, label="pdf(TracyWidom())")
+	title!(p, "Exponential Growth as an Airy Process")
 end
 
 # ╔═╡ a2aa704a-ebad-4b71-b589-84908481cc70
