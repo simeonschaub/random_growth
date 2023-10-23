@@ -279,7 +279,7 @@ end
 md"""
 Show after step $(@bind max_t SeekingSlider(0:100:2000, 2000))
 
-Show Ellipse $(@bind show_ellipse PlutoUI.CheckBox(; default=true))"""
+Show Ellipse $(@bind show_ellipse PlutoUI.CheckBox())"""
 
 # ╔═╡ 5e47a00b-a38e-4071-b44b-eb1b5661b968
 let n=1000, p=.5, t=max_t
@@ -296,14 +296,20 @@ let n=1000, p=.5, t=max_t
 	title!(L"Corner Growth with $p=%$p_corner$ after $n=%$t$ Steps")
 end
 
+# ╔═╡ f0c0b737-52ce-4980-9a0d-8dbaeebc9cee
+md"""
+Show after step $(@bind max_t_exp SeekingSlider(0:100:2000, 2000))
+
+Show limiting curve $(@bind show_curve_exp PlutoUI.CheckBox())"""
+
 # ╔═╡ df0ad4e6-761f-4d6a-a763-675542f0c2ed
-let n=1000, p=.5, t=max_t
+let n=1000, p=.5, t=max_t_exp
 	T = Tₑ
 
 	img = map(c -> ARGB(ColorSchemes.inferno[(c / t)^2], c ≤ t), T)
 	plot(img, ylims=(0, n), xlims=(0, n), yflip=false, size=(700, 700))
 	q = 1 - p
-	show_ellipse && for s in (1, -1)
+	show_curve_exp && for s in (1, -1)
 		plot!(lw=2, c=:green, label=(s==1) && L"\sqrt{x} + \sqrt{y} = \sqrt{n}") do x
 			t*(1 + s*√(x/t))^2
 		end
@@ -2014,6 +2020,7 @@ version = "1.4.1+1"
 # ╟─a2aa704a-ebad-4b71-b589-84908481cc70
 # ╠═5e47a00b-a38e-4071-b44b-eb1b5661b968
 # ╠═939ed01e-9894-4a94-b673-ca027a3c8ec8
+# ╟─f0c0b737-52ce-4980-9a0d-8dbaeebc9cee
 # ╠═df0ad4e6-761f-4d6a-a763-675542f0c2ed
 # ╠═9a97b92f-11a5-43da-ae20-4e68683c2628
 # ╠═41e5264d-9047-4755-b185-ee874d963d0b
