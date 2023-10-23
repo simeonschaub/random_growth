@@ -26,6 +26,20 @@ using Serialization
 # ╔═╡ 91171b75-3ab0-4d1b-a72b-c50413de6509
 using HypertextLiteral, AbstractPlutoDingetjes.Bonds
 
+# ╔═╡ 21b8e04a-9e37-4040-b3e2-df2436e1960a
+md"""
+# Corner Growth
+## The naive way
+"""
+
+# ╔═╡ 8b4fdbb6-991f-4798-b293-e3f0d2a9d608
+n = 16
+
+# ╔═╡ 15291967-a58b-4c0c-b066-2a1b53675d15
+md"""
+## Using the geometric distribution instead
+"""
+
 # ╔═╡ 815a40e8-c528-4384-a4ec-e71724891ed1
 function diagonal(M, i)
 	n = size(M, 1)
@@ -61,6 +75,11 @@ function plot_growth(T; color::Bool=false, fps=30, max_t=maximum(T))
 	end
 	return render(gif, :gif)
 end
+
+# ╔═╡ 7782eb6b-e604-4990-867e-0fc6cde3558e
+md"""
+## What if we use an exponential distribution instead of Geometric?
+"""
 
 # ╔═╡ 9a97b92f-11a5-43da-ae20-4e68683c2628
 ω(γ, q) = (1 + √(q*γ))^2 / (1-q) - 1
@@ -142,6 +161,53 @@ begin
 	Base.get((; default)::SeekingSlider) = default
 	Bonds.initial_value((; default)::SeekingSlider) = default
 	Bonds.possible_values((; r)::SeekingSlider) = r
+end
+
+# ╔═╡ 9d4c6014-48de-4013-ac2f-84f7adb953f8
+function step!(filled_squares, eligible; dist=Bernoulli())
+	for I in collect(eligible)
+		if rand(dist)
+			I in CartesianIndices(filled_squares) || continue
+			filled_squares[I] = true
+			pop!(eligible, I)
+			if get(filled_squares, I + CartesianIndex(1, -1), true)
+				push!(eligible, I + CartesianIndex(1, 0))
+			end
+			if get(filled_squares, I + CartesianIndex(-1, 1), true)
+				push!(eligible, I + CartesianIndex(0, 1))
+			end
+		end
+	end
+	return filled_squares, eligible
+end
+
+# ╔═╡ 77850345-a159-4bcc-9403-b194fd4d9134
+begin
+	filled_squares = falses(n, n)
+	eligible = Set([CartesianIndex(1, 1)])
+	STEPS = Tuple{BitMatrix, Set{CartesianIndex{2}}}[]
+	while !all(filled_squares)
+		push!(STEPS, copy.((filled_squares, eligible)))
+		step!(filled_squares, eligible)
+	end
+	push!(STEPS, copy.((filled_squares, eligible)))
+end
+
+# ╔═╡ d7e38b79-c876-4eb2-9c01-5806ffbb9755
+md"""
+Show after step $(@bind n_steps SeekingSlider(eachindex(STEPS), 1))
+"""
+
+# ╔═╡ c1b18124-89dc-48c8-b506-ae71687de9dd
+let (filled_squares, eligible) = STEPS[n_steps]
+	filled = [Tuple(I) for I in vec(CartesianIndices(filled_squares)) if filled_squares[I]]
+	p = scatter(filled;
+		marker=(stroke(0), :rect, ColorSchemes.inferno[.2], 12), aspect_ratio=1,
+		xlim=(0, n+.5), ylim=(0, n+.5), label="", theme=:inferno, size=(600, 500),
+	)
+	scatter!(p, Tuple.(collect(eligible));
+		marker=(stroke(0), :rect, ColorSchemes.inferno[.8], 12), label="",
+	)
 end
 
 # ╔═╡ 622f6669-7c25-4acd-bbff-6bdc0b4f4019
@@ -2002,6 +2068,13 @@ version = "1.4.1+1"
 # ╔═╡ Cell order:
 # ╠═d4c4dc1a-2d36-11ec-2796-c162f03598f0
 # ╠═313f5918-1e94-45a6-b1fd-29c9b5aaf35d
+# ╟─21b8e04a-9e37-4040-b3e2-df2436e1960a
+# ╠═8b4fdbb6-991f-4798-b293-e3f0d2a9d608
+# ╠═9d4c6014-48de-4013-ac2f-84f7adb953f8
+# ╠═77850345-a159-4bcc-9403-b194fd4d9134
+# ╟─d7e38b79-c876-4eb2-9c01-5806ffbb9755
+# ╠═c1b18124-89dc-48c8-b506-ae71687de9dd
+# ╟─15291967-a58b-4c0c-b066-2a1b53675d15
 # ╠═815a40e8-c528-4384-a4ec-e71724891ed1
 # ╠═622f6669-7c25-4acd-bbff-6bdc0b4f4019
 # ╠═f71384ce-53fb-443f-91ab-50a5adbb4aec
@@ -2016,6 +2089,7 @@ version = "1.4.1+1"
 # ╠═904a3da5-5b0f-46af-98ad-f262d3f1afb5
 # ╟─a2aa704a-ebad-4b71-b589-84908481cc70
 # ╠═5e47a00b-a38e-4071-b44b-eb1b5661b968
+# ╟─7782eb6b-e604-4990-867e-0fc6cde3558e
 # ╠═939ed01e-9894-4a94-b673-ca027a3c8ec8
 # ╟─f0c0b737-52ce-4980-9a0d-8dbaeebc9cee
 # ╠═df0ad4e6-761f-4d6a-a763-675542f0c2ed
