@@ -185,13 +185,21 @@ end
 begin
 	filled_squares = falses(n, n)
 	eligible = Set([CartesianIndex(1, 1)])
-	STEPS = Tuple{BitMatrix, Set{CartesianIndex{2}}}[]
+	∅ = empty(eligible)
+	STEPS = [(filled_squares, eligible, ∅)]
 	while !all(filled_squares)
-		push!(STEPS, copy.((filled_squares, eligible)))
-		step!(filled_squares, eligible)
+		filled_squares′, eligible′ = step!(copy(filled_squares), copy(eligible))
+		to_fill = filter(I -> get(filled_squares′, I, false), eligible)
+		push!(STEPS, (filled_squares, eligible, to_fill))
+		push!(STEPS, (filled_squares′, ∅, ∅))
+		push!(STEPS, (filled_squares′, eligible′, ∅))
+		filled_squares, eligible = filled_squares′, eligible′
 	end
-	push!(STEPS, copy.((filled_squares, eligible)))
+	push!(STEPS, (filled_squares, ∅, ∅))
 end
+
+# ╔═╡ 1a2358ed-3d98-4db5-a8c3-6ea3345be9cc
+∅
 
 # ╔═╡ d7e38b79-c876-4eb2-9c01-5806ffbb9755
 md"""
@@ -199,14 +207,17 @@ Show after step $(@bind n_steps SeekingSlider(eachindex(STEPS), 1))
 """
 
 # ╔═╡ c1b18124-89dc-48c8-b506-ae71687de9dd
-let (filled_squares, eligible) = STEPS[n_steps]
+let (filled_squares, eligible, to_fill) = STEPS[n_steps]
 	filled = [Tuple(I) for I in vec(CartesianIndices(filled_squares)) if filled_squares[I]]
-	p = scatter(filled;
-		marker=(stroke(0), :rect, ColorSchemes.inferno[.2], 12), aspect_ratio=1,
-		xlim=(0, n+.5), ylim=(0, n+.5), label="", theme=:inferno, size=(600, 500),
+	p = scatter(broadcast(.-, filled, [(.5, .5)]);
+		marker=(stroke(0), :rect, :darkblue, 12), aspect_ratio=1,
+		xlim=(0, n), ylim=(0, n), label="Filled Squares", theme=:inferno, size=(600, 500),
 	)
-	scatter!(p, Tuple.(collect(eligible));
-		marker=(stroke(0), :rect, ColorSchemes.inferno[.8], 12), label="",
+	scatter!(p, broadcast(.-, Tuple.(collect(eligible)), [(.5, .5)]);
+		marker=(stroke(0), :rect, :orange, 12), label="Eligible Squares",
+	)
+	scatter!(p, broadcast(.-, Tuple.(collect(to_fill)), [(.5, .5)]);
+		marker=(stroke(0), :rect, :green, 12), label="Squares to be Filled",
 	)
 end
 
@@ -2071,6 +2082,7 @@ version = "1.4.1+1"
 # ╟─21b8e04a-9e37-4040-b3e2-df2436e1960a
 # ╠═8b4fdbb6-991f-4798-b293-e3f0d2a9d608
 # ╠═9d4c6014-48de-4013-ac2f-84f7adb953f8
+# ╠═1a2358ed-3d98-4db5-a8c3-6ea3345be9cc
 # ╠═77850345-a159-4bcc-9403-b194fd4d9134
 # ╟─d7e38b79-c876-4eb2-9c01-5806ffbb9755
 # ╠═c1b18124-89dc-48c8-b506-ae71687de9dd
