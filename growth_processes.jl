@@ -33,7 +33,10 @@ md"""
 """
 
 # ╔═╡ 8b4fdbb6-991f-4798-b293-e3f0d2a9d608
-n = 16
+N = 16
+
+# ╔═╡ 341c7295-87ba-4c93-b1a3-2cd2dc69402e
+p = .5
 
 # ╔═╡ 15291967-a58b-4c0c-b066-2a1b53675d15
 md"""
@@ -48,14 +51,11 @@ function diagonal(M, i)
 	end
 end
 
-# ╔═╡ f71384ce-53fb-443f-91ab-50a5adbb4aec
-p_corner = .5
-
 # ╔═╡ f2c0b6a7-e485-4f3e-8f62-0b8d38d666c3
-n_corner = 200
+n_gif = 200
 
 # ╔═╡ 167c3bf2-63f5-49d9-ab25-8f50ee0e8c62
-W_corner = rand(Geometric(p_corner), (n_corner, n_corner));
+W_corner = rand(Geometric(p), (n_gif, n_gif));
 
 # ╔═╡ 4e908822-c013-484e-8801-3833f6cb6c5b
 render(img, format="png") = HTML("""
@@ -75,6 +75,9 @@ function plot_growth(T; color::Bool=false, fps=30, max_t=maximum(T))
 	end
 	return render(gif, :gif)
 end
+
+# ╔═╡ e36e8b9f-c383-4915-97cb-c57c7ab755e2
+n = 1000
 
 # ╔═╡ 7782eb6b-e604-4990-867e-0fc6cde3558e
 md"""
@@ -164,7 +167,7 @@ begin
 end
 
 # ╔═╡ 9d4c6014-48de-4013-ac2f-84f7adb953f8
-function step!(filled_squares, eligible; dist=Bernoulli())
+function step!(filled_squares, eligible; dist=Bernoulli(p))
 	for I in collect(eligible)
 		if rand(dist)
 			I in CartesianIndices(filled_squares) || continue
@@ -183,12 +186,12 @@ end
 
 # ╔═╡ 77850345-a159-4bcc-9403-b194fd4d9134
 begin
-	filled_squares = falses(n, n)
+	filled_squares = falses(N, N)
 	eligible = Set([CartesianIndex(1, 1)])
 	∅ = empty(eligible)
 	STEPS = [(filled_squares, eligible, ∅)]
 	while !all(filled_squares)
-		filled_squares′, eligible′ = step!(copy(filled_squares), copy(eligible))
+		filled_squares′, eligible′ = step!(copy(filled_squares), copy(eligible); dist=Bernoulli(p))
 		to_fill = filter(I -> get(filled_squares′, I, false), eligible)
 		push!(STEPS, (filled_squares, eligible, to_fill))
 		push!(STEPS, (filled_squares′, ∅, ∅))
@@ -197,9 +200,6 @@ begin
 	end
 	push!(STEPS, (filled_squares, ∅, ∅))
 end
-
-# ╔═╡ 1a2358ed-3d98-4db5-a8c3-6ea3345be9cc
-∅
 
 # ╔═╡ d7e38b79-c876-4eb2-9c01-5806ffbb9755
 md"""
@@ -211,10 +211,10 @@ let (filled_squares, eligible, to_fill) = STEPS[n_steps]
 	filled = [Tuple(I) for I in vec(CartesianIndices(filled_squares)) if filled_squares[I]]
 	p = scatter(broadcast(.-, filled, [(.5, .5)]);
 		marker=(stroke(0), :rect, :darkblue, 12), aspect_ratio=1,
-		xlim=(0, n), ylim=(0, n), label="Filled Squares", theme=:inferno, size=(600, 500),
+		xlim=(0, N), ylim=(0, N), label="Filled Squares", theme=:inferno, size=(600, 500),
 	)
 	scatter!(p, broadcast(.-, Tuple.(collect(eligible)), [(.5, .5)]);
-		marker=(stroke(0), :rect, :orange, 12), label="Eligible Squares",
+		marker=(stroke(0), :rect, isempty(to_fill) ? :orange : :red, 12), label="Eligible Squares",
 	)
 	scatter!(p, broadcast(.-, Tuple.(collect(to_fill)), [(.5, .5)]);
 		marker=(stroke(0), :rect, :green, 12), label="Squares to be Filled",
@@ -255,14 +255,10 @@ let n=1000, p=.5, t = 1500
 end
 
 # ╔═╡ 904a3da5-5b0f-46af-98ad-f262d3f1afb5
-Tᵢ = let n=1000, p=.5
-	accumulate_corner_growth(rand(Geometric(p), (n, n)))
-end;
+Tᵢ = accumulate_corner_growth(rand(Geometric(p), (n, n)));
 
 # ╔═╡ 939ed01e-9894-4a94-b673-ca027a3c8ec8
-Tₑ = let n=1000
-	accumulate_corner_growth(rand(Exponential(), (n, n)); shifted=false)
-end;
+Tₑ = accumulate_corner_growth(rand(Exponential(), (n, n)); shifted=false);
 
 # ╔═╡ 7ed16d08-9925-4959-adb1-a297283891bd
 data = let N=100, γ=1, q=.7, num_trials=10000
@@ -356,7 +352,7 @@ Show after step $(@bind max_t SeekingSlider(0:100:2000, 2000))
 Show Ellipse $(@bind show_ellipse PlutoUI.CheckBox())"""
 
 # ╔═╡ 5e47a00b-a38e-4071-b44b-eb1b5661b968
-let n=1000, p=.5, t=max_t
+let t=max_t
 	T = Tᵢ
 
 	img = map(c -> ARGB(ColorSchemes.inferno[(c / t)^2], c ≤ t), T)
@@ -367,7 +363,7 @@ let n=1000, p=.5, t=max_t
 			s*2√(-q^2*t*x + q^2*x^2 + q*t*x - q*x^2) - q*t + 2q*x + t - x
 		end
 	end
-	title!(L"Corner Growth with $p=%$p_corner$ after $n=%$t$ Steps")
+	title!(L"Corner Growth with $p=%$p$ after $n=%$t$ Steps")
 end
 
 # ╔═╡ f0c0b737-52ce-4980-9a0d-8dbaeebc9cee
@@ -377,7 +373,7 @@ Show after step $(@bind max_t_exp SeekingSlider(0:100:2000, 2000))
 Show limiting curve $(@bind show_curve_exp PlutoUI.CheckBox())"""
 
 # ╔═╡ df0ad4e6-761f-4d6a-a763-675542f0c2ed
-let n=1000, p=.5, t=max_t_exp
+let t=max_t_exp
 	T = Tₑ
 
 	img = map(c -> ARGB(ColorSchemes.inferno[(c / t)^2], c ≤ t), T)
@@ -2080,16 +2076,15 @@ version = "1.4.1+1"
 # ╠═d4c4dc1a-2d36-11ec-2796-c162f03598f0
 # ╠═313f5918-1e94-45a6-b1fd-29c9b5aaf35d
 # ╟─21b8e04a-9e37-4040-b3e2-df2436e1960a
-# ╠═8b4fdbb6-991f-4798-b293-e3f0d2a9d608
 # ╠═9d4c6014-48de-4013-ac2f-84f7adb953f8
-# ╠═1a2358ed-3d98-4db5-a8c3-6ea3345be9cc
+# ╠═8b4fdbb6-991f-4798-b293-e3f0d2a9d608
+# ╠═341c7295-87ba-4c93-b1a3-2cd2dc69402e
 # ╠═77850345-a159-4bcc-9403-b194fd4d9134
 # ╟─d7e38b79-c876-4eb2-9c01-5806ffbb9755
 # ╠═c1b18124-89dc-48c8-b506-ae71687de9dd
 # ╟─15291967-a58b-4c0c-b066-2a1b53675d15
 # ╠═815a40e8-c528-4384-a4ec-e71724891ed1
 # ╠═622f6669-7c25-4acd-bbff-6bdc0b4f4019
-# ╠═f71384ce-53fb-443f-91ab-50a5adbb4aec
 # ╠═f2c0b6a7-e485-4f3e-8f62-0b8d38d666c3
 # ╠═167c3bf2-63f5-49d9-ab25-8f50ee0e8c62
 # ╠═935d78a0-7094-4b99-b0ec-ac6352c29794
@@ -2098,6 +2093,7 @@ version = "1.4.1+1"
 # ╠═03c0fdf8-7c01-4f0e-893e-e8415edeeb25
 # ╠═afc35470-768c-49f1-a3b8-43566228822e
 # ╠═bfe78dd0-d4c8-40ff-8ad3-88f45a6490c8
+# ╠═e36e8b9f-c383-4915-97cb-c57c7ab755e2
 # ╠═904a3da5-5b0f-46af-98ad-f262d3f1afb5
 # ╟─a2aa704a-ebad-4b71-b589-84908481cc70
 # ╠═5e47a00b-a38e-4071-b44b-eb1b5661b968
