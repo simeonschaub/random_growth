@@ -49,7 +49,7 @@ jobs:
                     Export_baked_state=true,
                     # more parameters can go here
                     Precompute_enabled=true,
-                    Precompute_max_filesize_per_group=100_000_000,
+                    Precompute_max_filesize_per_group=1_000_000_000,
                   )'
             - name: Deploy to gh-pages
               uses: JamesIves/github-pages-deploy-action@releases/v4
