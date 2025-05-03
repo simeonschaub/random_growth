@@ -106,13 +106,22 @@ W_corner = rand(Geometric(p), (n_gif, n_gif));
 # ╔═╡ 935d78a0-7094-4b99-b0ec-ac6352c29794
 T_corner = accumulate_corner_growth(W_corner);
 
+# ╔═╡ 6d9c7cbf-49a1-493a-ab80-8d620c636286
+#=╠═╡
+plot_growth(T_corner, max_t = 600)
+  ╠═╡ =#
+
 # ╔═╡ 4e908822-c013-484e-8801-3833f6cb6c5b
+# ╠═╡ disabled = true
+#=╠═╡
 render(img, format="png") = HTML("""
 	<img src='data:image/$format;base64,$(stringmime(MIME("image/$format"), img))'
 		 width=600 height=600 style='image-rendering: pixelated; transform: scaleY(-1)' />
 """)
+  ╠═╡ =#
 
 # ╔═╡ 03c0fdf8-7c01-4f0e-893e-e8415edeeb25
+#=╠═╡
 function plot_growth(T; color::Bool=false, fps = 30, max_t = maximum(T))
 	if color
 		cols = map(1:max_t) do t
@@ -124,14 +133,15 @@ function plot_growth(T; color::Bool=false, fps = 30, max_t = maximum(T))
 	end
 	return render(gif, :gif)
 end
-
-# ╔═╡ 6d9c7cbf-49a1-493a-ab80-8d620c636286
-plot_growth(T_corner, max_t = 600)
+  ╠═╡ =#
 
 # ╔═╡ afc35470-768c-49f1-a3b8-43566228822e
+#=╠═╡
 plot_growth(T_corner; color = true, max_t = 600)
+  ╠═╡ =#
 
 # ╔═╡ bfe78dd0-d4c8-40ff-8ad3-88f45a6490c8
+#=╠═╡
 let n = 1000, p = .5, t = 1500
 	T = accumulate_corner_growth(rand(Geometric(p), (n, n)))
 	@show findlast(≤(t), view(T, 1, :))
@@ -141,6 +151,7 @@ let n = 1000, p = .5, t = 1500
 	map(c -> ARGB(ColorSchemes.inferno[(c / t)^2], c ≤ t), T)
 	Gray.(T .> t) |> render
 end
+  ╠═╡ =#
 
 # ╔═╡ e36e8b9f-c383-4915-97cb-c57c7ab755e2
 n = 1000
@@ -155,6 +166,24 @@ md"""
 
 # ╔═╡ 939ed01e-9894-4a94-b673-ca027a3c8ec8
 Tₑ = accumulate_corner_growth(rand(Exponential(), (n, n)); shifted=false);
+
+# ╔═╡ df0ad4e6-761f-4d6a-a763-675542f0c2ed
+# ╠═╡ disabled = true
+#=╠═╡
+let t=max_t_exp
+	T = Tₑ
+
+	img = map(c -> ARGB(ColorSchemes.inferno[(c / t)^2], c ≤ t), T)
+	plot(img, ylims=(0, n), xlims=(0, n), yflip=false, size=(700, 700))
+	q = 1 - p
+	show_curve_exp && for s in (1, -1)
+		plot!(lw=2, c=:green, label=(s==1) && L"\sqrt{x} + \sqrt{y} = \sqrt{n}") do x
+			t*(1 + s*√(x/t))^2
+		end
+	end
+	title!(L"Exponential Growth with $n=%$t$ Steps")
+end
+  ╠═╡ =#
 
 # ╔═╡ 9a97b92f-11a5-43da-ae20-4e68683c2628
 ω(γ, q) = (1 + √(q*γ))^2 / (1-q) - 1
@@ -194,11 +223,14 @@ data = let N=100, γ=1, q=.7, num_trials=10000
 end
 
 # ╔═╡ a33e5804-3155-4e1e-b3f0-11f28d69fb5e
+# ╠═╡ disabled = true
+#=╠═╡
 begin
 	histogram(data; normalize=true, bins=range(-6, 4; length=51), label="(T[M, N] - N*ω(γ, q)) / (σ(γ, q) * N^(1/3))", ylims=(0, .55))
 	plot!(pdf_tracy_widom; lw=3, label="pdf(TracyWidom())")
 	title!("Corner Growth Tracy-Widom")
 end
+  ╠═╡ =#
 
 # ╔═╡ 5ae63cc2-055f-4308-8434-ad3dccfeecbc
 data_exp = let N=1, γ=2, num_trials=10000
@@ -220,6 +252,8 @@ data_legendre = let n=1, num_trials=5000
 end
 
 # ╔═╡ fd4a0cd2-66fb-4dcd-ba2a-0d5395e53657
+# ╠═╡ disabled = true
+#=╠═╡
 let num_trials=5000, γ=1/2
 	plot()
 	dist = Exponential()
@@ -240,8 +274,11 @@ let num_trials=5000, γ=1/2
 	end
 	title!("Exponential Growth vs. Leguerre")
 end
+  ╠═╡ =#
 
 # ╔═╡ b889439f-58f7-4059-b57c-b2eef5229124
+# ╠═╡ disabled = true
+#=╠═╡
 let num_trials=5000, γ=1.0
 	plot()
 	dist = Exponential()
@@ -257,6 +294,7 @@ let num_trials=5000, γ=1.0
 	title!("Exponential Growth Tracy-Widom")
 	plot!(pdf_tracy_widom; lw=3, label="pdf(TracyWidom())")
 end
+  ╠═╡ =#
 
 # ╔═╡ 79730d4e-a056-43ed-92ea-75b859c8f49d
 function growth_kernel!(x, y, n)
@@ -286,6 +324,8 @@ function sample_growth!(x, y, N, M, dist)
 end
 
 # ╔═╡ 4182e4ab-05eb-4a3b-af17-95861c77958b
+# ╠═╡ disabled = true
+#=╠═╡
 let num_trials=100_000
 	dist = Exponential()
 	data_exps = Vector{Float64}[]
@@ -305,6 +345,7 @@ let num_trials=100_000
 	p, = histogram2d(collect(zip(data_exps...)), normalize=true, bins=100, ratio=1)
 	title!(p, "Exponential Growth as an Airy Process")
 end
+  ╠═╡ =#
 
 # ╔═╡ b75a4185-0c7d-4f0b-8695-f353a7d49649
 function sample_airy!(x, y, n, dist)
@@ -317,6 +358,8 @@ function sample_airy!(x, y, n, dist)
 end
 
 # ╔═╡ a95b0385-e462-4175-bce8-93c1150d09e1
+# ╠═╡ disabled = true
+#=╠═╡
 let N = 10000, q = 0.5
 	n = 2N + 1
 	x, y = Vector{Int}(undef, n + 1), Vector{Int}(undef, n)
@@ -328,8 +371,11 @@ let N = 10000, q = 0.5
 	t = (-N:N) .* (1 - √q) / (1 + √q) * d * N^(-2/3)
 	plot(t, H_N .+ t.^2)
 end
+  ╠═╡ =#
 
 # ╔═╡ 9bdbe542-7467-4db5-818d-1205cc59142c
+# ╠═╡ disabled = true
+#=╠═╡
 let N = 1000, q = 0.5
 	n = 2N + 1
 	x, y = Vector{Int}(undef, n + 1), Vector{Int}(undef, n)
@@ -344,13 +390,17 @@ let N = 1000, q = 0.5
 	histogram(res; bins = 50, normalize = true)
 	plot!(x -> ForwardDiff.derivative(x -> cdf(TracyWidom(1), x), x); lw = 3)
 end
+  ╠═╡ =#
 
 # ╔═╡ a0bcadc1-7f88-425d-9533-32bd09da974c
+# ╠═╡ disabled = true
+#=╠═╡
 let
 	T = accumulate_corner_growth(rand(Geometric(0.5), 200, 200); shifted = false)
 	y = T[200:199:end-1]
 	plot((y .- (1:200) .* ω.((200:-1:1) ./ (1:200), 0.5)) ./ σ.((200:-1:1) ./ (1:200), 0.5) .* (1:200) .^ -(1/3))
 end
+  ╠═╡ =#
 
 # ╔═╡ b1175f17-cfa8-493c-a78e-7d836c46a49c
 # ╠═╡ disabled = true
@@ -430,19 +480,13 @@ let
 	fig
 end
 
-# ╔═╡ a2aa704a-ebad-4b71-b589-84908481cc70
-md"""
-Show after step $(@bind max_t SeekingSlider(0:100:2000, 2000))
-
-Show Ellipse $(@bind show_ellipse PlutoUI.CheckBox())"""
-
 # ╔═╡ 5e47a00b-a38e-4071-b44b-eb1b5661b968
 let
 	fig = Figure(; size = (650, 800))
 	max_t = SeekingSlider(fig[2, 1][1, 2], 0:100:2000; startvalue = 2000)
-	Label(fig[2, 1][1, 1]; text = map(t -> "Show after step $t", max_t))
-	Label(fig[3, 1][1, 1]; text = "Show Ellipse")
-	show_ellipse = Makie.Toggle(fig[3, 1][1, 2]).active
+	Label(fig[2, 1][1, 1]; text = "Show after step")
+	Label(fig[2, 1][2, 1][1, 2:3]; text = "Show Ellipse")
+	show_ellipse = Makie.Toggle(fig[2, 1][2, 1][1, 4]).active
 
 	T = Tᵢ
 	img = map(max_t) do t
@@ -465,21 +509,6 @@ md"""
 Show after step $(@bind max_t_exp SeekingSlider(0:100:2000, 2000))
 
 Show limiting curve $(@bind show_curve_exp PlutoUI.CheckBox())"""
-
-# ╔═╡ df0ad4e6-761f-4d6a-a763-675542f0c2ed
-let t=max_t_exp
-	T = Tₑ
-
-	img = map(c -> ARGB(ColorSchemes.inferno[(c / t)^2], c ≤ t), T)
-	plot(img, ylims=(0, n), xlims=(0, n), yflip=false, size=(700, 700))
-	q = 1 - p
-	show_curve_exp && for s in (1, -1)
-		plot!(lw=2, c=:green, label=(s==1) && L"\sqrt{x} + \sqrt{y} = \sqrt{n}") do x
-			t*(1 + s*√(x/t))^2
-		end
-	end
-	title!(L"Exponential Growth with $n=%$t$ Steps")
-end
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
@@ -2602,7 +2631,6 @@ version = "4.1.0+0"
 # ╠═bfe78dd0-d4c8-40ff-8ad3-88f45a6490c8
 # ╠═e36e8b9f-c383-4915-97cb-c57c7ab755e2
 # ╠═904a3da5-5b0f-46af-98ad-f262d3f1afb5
-# ╟─a2aa704a-ebad-4b71-b589-84908481cc70
 # ╠═5e47a00b-a38e-4071-b44b-eb1b5661b968
 # ╟─7782eb6b-e604-4990-867e-0fc6cde3558e
 # ╠═939ed01e-9894-4a94-b673-ca027a3c8ec8
