@@ -195,12 +195,10 @@ end
 let N = 1000, q = 0.5
 	n = 2N + 1
 	x, y = Vector{Int}(undef, n + 1), Vector{Int}(undef, n)
+	d = q^(1/6) * (1 + √q)^(1/3) / (1 - q)
 	res = Float64[]
 	for _ in 1:10000
 		G = view(sample_airy!(x, y, n, Geometric(1 - q)), 1:n)
-		d = q^(1/6) * (1 + √q)^(1/3) / (1 - q)
-		#H_N = (G .- 2√q / (1 - √q) * N) ./ (d * N^(1/3))
-		#t = (-N:N) .* (1 - √q) / (1 + √q) * d * N^(-2/3)
 		G_pl = maximum(G)
 		push!(res, (G_pl - 2√q / (1 - √q) * N) / (d * N^(1/3)))
 	end
@@ -336,14 +334,12 @@ let (filled_squares, eligible, to_fill) = STEPS[n_steps]
 end
 
 # ╔═╡ 622f6669-7c25-4acd-bbff-6bdc0b4f4019
-function accumulate_corner_growth(W, n=size(W, 1); shifted=true, init=0)
+function accumulate_corner_growth(W; shifted = true)
 	T = fill!(similar(W), typemax(Int))
 	T[1, 1] = W[1, 1]
-	for i in 2:2n
-		for I in CartesianIndices(W)
-			neighbors = (I,) .- CartesianIndex.((0, 1), (1, 0))
-			T[I] = W[I] + maximum(I -> get(T, I, 0), neighbors) + shifted
-		end
+	for I in CartesianIndices(W)
+		neighbors = (I,) .- CartesianIndex.((0, 1), (1, 0))
+		T[I] = W[I] + maximum(I -> get(T, I, 0), neighbors) + shifted
 	end
 	return T
 end
@@ -359,7 +355,7 @@ plot_growth(T_corner; color=true, max_t=600)
 
 # ╔═╡ bfe78dd0-d4c8-40ff-8ad3-88f45a6490c8
 let n=1000, p=.5, t = 1500
-	T = accumulate_corner_growth(rand(Geometric(p), (n, n)), t)
+	T = accumulate_corner_growth(rand(Geometric(p), (n, n)))
 	@show findlast(≤(t), view(T, 1, :))
 	@show findlast(≤(t), view(T, :, 1))
 	@show t * mean(Geometric(.5))
