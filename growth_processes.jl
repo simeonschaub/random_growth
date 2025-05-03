@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.20.4
+# v0.20.6
 
 using Markdown
 using InteractiveUtils
@@ -7,7 +7,7 @@ using InteractiveUtils
 # This Pluto notebook uses @bind for interactivity. When running this notebook outside of Pluto, the following 'mock version' of @bind gives bound variables a default value (instead of an error).
 macro bind(def, element)
     #! format: off
-    quote
+    return quote
         local iv = try Base.loaded_modules[Base.PkgId(Base.UUID("6e696c72-6542-2067-7265-42206c756150"), "AbstractPlutoDingetjes")].Bonds.initial_value catch; b -> missing; end
         local el = $(esc(element))
         global $(esc(def)) = Core.applicable(Base.get, el) ? Base.get(el) : iv(el)
@@ -24,6 +24,9 @@ using LinearAlgebra, SpecialFunctions, FastGaussQuadrature, ForwardDiff
 
 # ╔═╡ 518ce55c-c163-4ef3-8617-802217aaba01
 using Random
+
+# ╔═╡ 672eb289-8ba1-464d-8da6-6a68ae8381ce
+using RandomMatrices
 
 # ╔═╡ 3004a0be-c096-43bb-9541-824ff4dd00f5
 using Serialization
@@ -164,6 +167,72 @@ let num_trials=100_000
 	p, = histogram2d(collect(zip(data_exps...)), normalize=true, bins=100, ratio=1)
 	title!(p, "Exponential Growth as an Airy Process")
 end
+
+# ╔═╡ b75a4185-0c7d-4f0b-8695-f353a7d49649
+function sample_airy!(x, y, n, dist)
+	view(x, 1:n+1) .= 0
+	for k in 1:n
+		rand!(dist, view(y, 1:k))
+		growth_kernel!(view(x, n-k+1:n+1), y, k)
+	end
+	return x
+end
+
+# ╔═╡ a95b0385-e462-4175-bce8-93c1150d09e1
+let N = 10000, q = 0.5
+	n = 2N + 1
+	x, y = Vector{Int}(undef, n + 1), Vector{Int}(undef, n)
+	G = sample_airy!(x, y, n, Geometric(1 - q))
+	#G = accumulate_corner_growth(rand(Geometric(1 - q), n, n); shifted = false)[CartesianIndex.(1:n, n:-1:1)]
+	resize!(G, n)
+	d = q^(1/6) * (1 + √q)^(1/3) / (1 - q)
+	H_N = (G .- 2√q / (1 - √q) * N) ./ (d * N^(1/3))
+	t = (-N:N) .* (1 - √q) / (1 + √q) * d * N^(-2/3)
+	plot(t, H_N .+ t.^2)
+end
+
+# ╔═╡ 9bdbe542-7467-4db5-818d-1205cc59142c
+let N = 1000, q = 0.5
+	n = 2N + 1
+	x, y = Vector{Int}(undef, n + 1), Vector{Int}(undef, n)
+	res = Float64[]
+	for _ in 1:10000
+		G = view(sample_airy!(x, y, n, Geometric(1 - q)), 1:n)
+		d = q^(1/6) * (1 + √q)^(1/3) / (1 - q)
+		#H_N = (G .- 2√q / (1 - √q) * N) ./ (d * N^(1/3))
+		#t = (-N:N) .* (1 - √q) / (1 + √q) * d * N^(-2/3)
+		G_pl = maximum(G)
+		push!(res, (G_pl - 2√q / (1 - √q) * N) / (d * N^(1/3)))
+	end
+	
+	histogram(res; bins = 50, normalize = true)
+	plot!(x -> ForwardDiff.derivative(x -> cdf(TracyWidom(1), x), x); lw = 3)
+end
+
+# ╔═╡ b1175f17-cfa8-493c-a78e-7d836c46a49c
+# ╠═╡ disabled = true
+#=╠═╡
+let num_trials=20000
+	dist = Exponential()
+	data_exps = Vector{Float64}[]
+	for N in [100, 110] #[10, 20, 40]
+		M = round(Int, (20 - √N)^2)
+		γ = N/M
+		@show M
+		n = max(M, N)
+		data_exp = map(1:num_trials) do _
+			T = accumulate_corner_growth(rand(dist, (n, n)); shifted=false)
+			(T[M, N] - N*(1+√γ)^2) / (γ^(-1/6) * (1+√γ)^(4/3) * N^(1/3))
+		end
+		@show N*(1+√γ)^2
+		@show (γ^(-1/6) * (1+√γ)^(4/3) * N^(1/3))
+		push!(data_exps, data_exp)
+	end
+	p, = histogram2d(collect(zip(data_exps...)), normalize=true, bins=100)
+	serialize("/tmp/airy.dat", collect(zip(data_exps...)))
+	title!(p, "Exponential Growth as an Airy Process")
+end
+  ╠═╡ =#
 
 # ╔═╡ de06fca9-d48c-45a0-a351-619364412745
 begin
@@ -371,26 +440,11 @@ let num_trials=5000, γ=1.0
 	plot!(pdf_tracy_widom; lw=3, label="pdf(TracyWidom())")
 end
 
-# ╔═╡ b1175f17-cfa8-493c-a78e-7d836c46a49c
-let num_trials=20000
-	dist = Exponential()
-	data_exps = Vector{Float64}[]
-	for N in [100, 110] #[10, 20, 40]
-		M = round(Int, (20 - √N)^2)
-		γ = N/M
-		@show M
-		n = max(M, N)
-		data_exp = map(1:num_trials) do _
-			T = accumulate_corner_growth(rand(dist, (n, n)); shifted=false)
-			(T[M, N] - N*(1+√γ)^2) / (γ^(-1/6) * (1+√γ)^(4/3) * N^(1/3))
-		end
-		@show N*(1+√γ)^2
-		@show (γ^(-1/6) * (1+√γ)^(4/3) * N^(1/3))
-		push!(data_exps, data_exp)
-	end
-	p, = histogram2d(collect(zip(data_exps...)), normalize=true, bins=100)
-	serialize("/tmp/airy.dat", collect(zip(data_exps...)))
-	title!(p, "Exponential Growth as an Airy Process")
+# ╔═╡ a0bcadc1-7f88-425d-9533-32bd09da974c
+let
+	T = accumulate_corner_growth(rand(Geometric(0.5), 200, 200); shifted = false)
+	y = T[200:199:end-1]
+	plot((y .- (1:200) .* ω.((200:-1:1) ./ (1:200), 0.5)) ./ σ.((200:-1:1) ./ (1:200), 0.5) .* (1:200) .^ -(1/3))
 end
 
 # ╔═╡ a2aa704a-ebad-4b71-b589-84908481cc70
@@ -451,6 +505,7 @@ LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
 PlutoUI = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
+RandomMatrices = "2576dda1-a324-5b11-aa66-c48ed7e3c618"
 Serialization = "9e88b42a-f829-5b0c-bbe9-9e923198166b"
 SpecialFunctions = "276daf66-3868-5448-9aa4-cd146d93841b"
 
@@ -465,6 +520,7 @@ Images = "~0.25.2"
 LaTeXStrings = "~1.3.0"
 Plots = "~1.40.9"
 PlutoUI = "~0.7.49"
+RandomMatrices = "~0.5.5"
 SpecialFunctions = "~2.5.0"
 """
 
@@ -472,9 +528,9 @@ SpecialFunctions = "~2.5.0"
 PLUTO_MANIFEST_TOML_CONTENTS = """
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.11.3"
+julia_version = "1.11.5"
 manifest_format = "2.0"
-project_hash = "db66145d05996b80ca83fdcc4eb6f71a10da1a03"
+project_hash = "ae769a5d29470dd7b828750530d5bd2fcf369651"
 
 [[deps.AbstractFFTs]]
 deps = ["LinearAlgebra"]
@@ -612,6 +668,11 @@ deps = ["ColorTypes", "FixedPointNumbers", "Reexport"]
 git-tree-sha1 = "362a287c3aa50601b0bc359053d5c2468f0e7ce0"
 uuid = "5ae59095-9a9b-59fe-a467-6f913c188581"
 version = "0.12.11"
+
+[[deps.Combinatorics]]
+git-tree-sha1 = "08c8b6831dc00bfea825826be0bc8336fc369860"
+uuid = "861a8166-3701-5b0c-9a16-15d98fcdc6aa"
+version = "1.0.2"
 
 [[deps.CommonSubexpressions]]
 deps = ["MacroTools"]
@@ -880,6 +941,18 @@ deps = ["Artifacts", "Bzip2_jll", "Cairo_jll", "FFMPEG_jll", "Fontconfig_jll", "
 git-tree-sha1 = "36d5430819123553bf31dfdceb3653ca7d9e62d7"
 uuid = "d2c73de3-f751-5644-a686-071e5b155ba9"
 version = "0.73.12+0"
+
+[[deps.GSL]]
+deps = ["GSL_jll", "Libdl", "Markdown"]
+git-tree-sha1 = "3ebd07d519f5ec318d5bc1b4971e2472e14bd1f0"
+uuid = "92c85e6c-cbff-5e0c-80f7-495c94daaecd"
+version = "1.0.1"
+
+[[deps.GSL_jll]]
+deps = ["Artifacts", "JLLWrappers", "Libdl"]
+git-tree-sha1 = "7da3a878517e1420850569d35d9ba583b745e39d"
+uuid = "1b77fbbe-d8ee-58f0-85f9-836ddc23a7a4"
+version = "2.8.1+0"
 
 [[deps.Gettext_jll]]
 deps = ["Artifacts", "CompilerSupportLibraries_jll", "JLLWrappers", "Libdl", "Libiconv_jll", "Pkg", "XML2_jll"]
@@ -1450,7 +1523,7 @@ version = "2.5.3+0"
 [[deps.OpenLibm_jll]]
 deps = ["Artifacts", "Libdl"]
 uuid = "05823500-19ac-5b8b-9628-191a04bc5112"
-version = "0.8.1+2"
+version = "0.8.5+0"
 
 [[deps.OpenSSL]]
 deps = ["BitFlags", "Dates", "MozillaCACerts_jll", "OpenSSL_jll", "Sockets"]
@@ -1671,6 +1744,12 @@ version = "1.11.0"
 deps = ["SHA"]
 uuid = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 version = "1.11.0"
+
+[[deps.RandomMatrices]]
+deps = ["Combinatorics", "Distributions", "FastGaussQuadrature", "GSL", "LinearAlgebra", "Random", "SpecialFunctions", "Test"]
+git-tree-sha1 = "359d601ae45b05ea9a53d303dfbf477fcaca4195"
+uuid = "2576dda1-a324-5b11-aa66-c48ed7e3c618"
+version = "0.5.5"
 
 [[deps.RangeArrays]]
 git-tree-sha1 = "b9039e93773ddcfc828f12aadf7115b4b4d225f5"
@@ -2355,6 +2434,11 @@ version = "1.4.1+2"
 # ╠═79730d4e-a056-43ed-92ea-75b859c8f49d
 # ╠═867b7d9b-db69-48c6-a1b0-7176f9986710
 # ╠═4182e4ab-05eb-4a3b-af17-95861c77958b
+# ╠═b75a4185-0c7d-4f0b-8695-f353a7d49649
+# ╠═a95b0385-e462-4175-bce8-93c1150d09e1
+# ╠═672eb289-8ba1-464d-8da6-6a68ae8381ce
+# ╠═9bdbe542-7467-4db5-818d-1205cc59142c
+# ╠═a0bcadc1-7f88-425d-9533-32bd09da974c
 # ╠═b1175f17-cfa8-493c-a78e-7d836c46a49c
 # ╠═3004a0be-c096-43bb-9541-824ff4dd00f5
 # ╠═91171b75-3ab0-4d1b-a72b-c50413de6509
