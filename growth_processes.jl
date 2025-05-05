@@ -20,7 +20,7 @@ md"""
 N = 16
 
 # ╔═╡ 341c7295-87ba-4c93-b1a3-2cd2dc69402e
-p = .1
+p = .5
 
 # ╔═╡ 9d4c6014-48de-4013-ac2f-84f7adb953f8
 function step!(filled_squares, eligible; dist = Bernoulli(p))
@@ -135,25 +135,28 @@ end
 # ╔═╡ 5e47a00b-a38e-4071-b44b-eb1b5661b968
 let
 	fig = Figure(; size = (650, 800))
-	max_t = SeekingSlider(fig[2, 1][1, 2], 0:100:2000; startvalue = 2000)
+	max_t = SeekingSlider(fig[2, 1][1, 2], 0:10:2000; startvalue = 2000)
 	Label(fig[2, 1][1, 1]; text = "Show after step")
-	Label(fig[2, 1][2, 1][1, 2:3]; text = "Show Ellipse")
-	show_ellipse = Makie.Toggle(fig[2, 1][2, 1][1, 4]).active
+	Label(fig[2, 1][2, :][1, 1]; text = "Show Ellipse")
+	show_ellipse = Makie.Toggle(fig[2, 1][2, :][1, 2]).active
 
-	T = Tᵢ
+	tmp = similar(Tᵢ, ARGB32)
 	img = map(max_t) do t
-		map(c -> ARGB(ColorSchemes.inferno[(c / t)^2], c ≤ t), T)
+		map!(c -> ARGB(ColorSchemes.inferno[(c / t)^2], c ≤ t), tmp, Tᵢ)
 	end
 
 	ax = Axis(fig[1, 1]; limits = ((0, n), (0, n)), aspect = DataAspect(), title = map(t -> L"Corner Growth with $p=%$p$ after $n=%$t$ Steps", max_t))
 	heatmap!(ax, Tᵢ; colorrange = map(t -> (0, t), max_t), highclip = :transparent)
+
+	x = map(t -> range(0, Float32(t); length = 256), max_t)
 	q = 1 - p
-	#=for s in (1, -1)
-		lines!(ax, 0..n, map(max_t) do t
-			x -> s*2√(-q^2*t*x + q^2*x^2 + q*t*x - q*x^2) - q*t + 2q*x + t - x
+	y₁, y₂ = Vector{Float32}(undef, 256), Vector{Float32}(undef, 256)
+	
+	for (s, y) in ((1f0, y₁), (-1f0, y₂))
+		lines!(ax, x, map(max_t, x) do t, x
+			map!(x -> s*2√(-q^2*t*x + q^2*x^2 + q*t*x - q*x^2) - q*t + 2q*x + t - x, y, x)
 		end; linewidth = 2, color = :green, alpha = show_ellipse)
-	end=#
-	poly!(ax, Circle(Point2f(0, 0), 500); color = :transparent, strokewidth = 2, strokecolor = :green, transformation = (; scale = Vec2f(1, q), rotation = π / 4, translation = Point2f(500, 500)))
+	end
 	fig
 end
 
