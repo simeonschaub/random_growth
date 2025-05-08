@@ -178,14 +178,14 @@ function sample_airy!(x, y, n, dist)
 	return x
 end
 
-# ╔═╡ 12d4a9a7-6d1a-4ad4-bd68-ca86995ea907
-let N = 1000, q = 0.5
-	n = 2N + 1
+# ╔═╡ 74462a82-6ffc-442b-8129-51c7c1d33122
+let N = 500, q = 0.5
+	n = 2N - 1
 	
 	d = q^(1/6) * (1 + √q)^(4/3) / (1 - q)
-	t = (-N:N) .* (1 - √q) / (1 + √q) * d * N^(-2/3)
+	t = (-(N - 1):(N - 1)) .* (1 - √q) / (1 + √q) * d * N^(-2/3)
 	
-	i₁, i₂ = findfirst(iszero, -N:N), findmin(t -> abs(t - 0.2), t)[2]
+	i₁, i₂ = findfirst(iszero, -(N - 1):(N - 1)), findmin(t -> abs(t - 0.2), t)[2]
 	x, y = Vector{Int}(undef, n + 1), Vector{Int}(undef, n)
 	A₁, A₂ = Float64[], Float64[]
 	for _ in 1:10000
@@ -202,20 +202,60 @@ let N = 1000, q = 0.5
 	histogram2d(A₁, A₂; normalized = true, bins = 50, ratio = 1)
 end
 
-# ╔═╡ 619ebfbf-dc63-43dc-8abf-dcfcabf3a991
-let σ²_TW = 0.8131947928329
-	σ²_TW - 0.3
+# ╔═╡ 12d4a9a7-6d1a-4ad4-bd68-ca86995ea907
+let N = 1000, q = 0.5
+	n = 2N - 1
+	
+	d = q^(1/6) * (1 + √q)^(4/3) / (1 - q)
+	t = (-(N - 1):(N - 1)) .* (1 - √q) / (1 + √q) * d * N^(-2/3)
+	
+	i₁, i₂ = findfirst(iszero, -(N - 1):(N - 1)), findmin(t -> abs(t - 0.2), t)[2]
+	x, y = Vector{Int}(undef, n + 1), Vector{Int}(undef, n)
+	A₁, A₂ = Float64[], Float64[]
+	for _ in 1:10000
+		G = sample_airy!(x, y, n, Geometric(1 - q))
+		#G = accumulate_corner_growth(rand(Geometric(1 - q), n, n); shifted = false)[CartesianIndex.(1:n, n:-1:1)]
+		push!(A₁, (G[i₁] - 2√q / (1 - √q) * N) / (d * N^(1/3)) + t[i₁]^2)
+		push!(A₂, (G[i₂] - 2√q / (1 - √q) * N) / (d * N^(1/3)) + t[i₂]^2)
+	end
+	@show t[i₂] - t[i₁]
+	@show mean(A₁) mean(A₂)
+	@show cov(A₁, A₂)
+	σ²_TW = 0.8131947928329
+	@show σ²_TW - (t[i₂] - t[i₁])
+	histogram2d(A₁, A₂; normalized = true, bins = 50, ratio = 1)
 end
 
-# ╔═╡ 0a99d3b1-cd2f-436f-b31b-1eec36d052c3
-100^(-1/3) * 0.3
+# ╔═╡ d62adbaf-2702-4ba6-b166-ca550e36d74f
+let N = 2000, q = 0.5
+	n = 2N - 1
+	
+	d = q^(1/6) * (1 + √q)^(4/3) / (1 - q)
+	t = (-(N - 1):(N - 1)) .* (1 - √q) / (1 + √q) * d * N^(-2/3)
+	
+	i₁, i₂ = findfirst(iszero, -(N - 1):(N - 1)), findmin(t -> abs(t - 0.2), t)[2]
+	x, y = Vector{Int}(undef, n + 1), Vector{Int}(undef, n)
+	A₁, A₂ = Float64[], Float64[]
+	for _ in 1:2000
+		G = sample_airy!(x, y, n, Geometric(1 - q))
+		#G = accumulate_corner_growth(rand(Geometric(1 - q), n, n); shifted = false)[CartesianIndex.(1:n, n:-1:1)]
+		push!(A₁, (G[i₁] - 2√q / (1 - √q) * N) / (d * N^(1/3)) + t[i₁]^2)
+		push!(A₂, (G[i₂] - 2√q / (1 - √q) * N) / (d * N^(1/3)) + t[i₂]^2)
+	end
+	@show t[i₂] - t[i₁]
+	@show mean(A₁) mean(A₂)
+	@show cov(A₁, A₂)
+	σ²_TW = 0.8131947928329
+	@show σ²_TW - (t[i₂] - t[i₁])
+	histogram2d(A₁, A₂; normalized = true, bins = 50, ratio = 1)
+end
 
 # ╔═╡ 032227f5-9689-4563-bbad-79dfa6048ecf
 let
 	sym(A) = Hermitian(A+A')
 	GUE(n) = sym(randn(n,n)+im*randn(n,n))/√8
 	function Matrix_Brownian(n)
-		dt = n^(-1/3) * 0.3
+		dt = n^(-1/3) * 0.2
 		v = GUE(n)
 		k = 1-2dt
 		i = dt
@@ -232,7 +272,7 @@ let
 	@show mean(A₁) mean(A₂)
 	@show cov(A₁, A₂)
 	σ²_TW = 0.8131947928329
-	@show σ²_TW - 0.3
+	@show σ²_TW - 0.2
 	histogram2d(A₁, A₂; normalized = true, bins = 50, ratio = 1)
 end
 
@@ -432,6 +472,9 @@ begin
 	title!("Corner Growth Tracy-Widom")
 end
 
+# ╔═╡ 38d4028b-13c1-46b8-b7b0-9719617247fe
+mean(data), var(data)
+
 # ╔═╡ 5ae63cc2-055f-4308-8434-ad3dccfeecbc
 data_exp = let N=1, γ=2, num_trials=10000
 	M = round(Int, γ*N)
@@ -485,7 +528,7 @@ end
 let N = 1000, q = 0.5
 	n = 2N + 1
 	x, y = Vector{Int}(undef, n + 1), Vector{Int}(undef, n)
-	plot()
+	plot(; legend = false)
 	for _ in 1:10
 		for (G, ls) in zip([sample_airy!(x, y, n, Geometric(1 - q)), accumulate_corner_growth(rand(Geometric(1 - q), n, n); shifted = false)[CartesianIndex.(1:n, n:-1:1)]], [:solid, :dash])
 			G = view(G, 1:n)
@@ -504,15 +547,14 @@ end
 let N = 1000, q = 0.5
 	n = 2N + 1
 	x, y = Vector{Int}(undef, n + 1), Vector{Int}(undef, n)
-	plot()
+	plot(; legend = false)
 	for _ in 1:10
 		for (G, ls) in zip([sample_airy!(x, y, n, Geometric(1 - q)), accumulate_corner_growth(rand(Geometric(1 - q), n, n); shifted = false)[CartesianIndex.(1:n, n:-1:1)]], [:solid, :dash])
 			G = view(G, 1:n)
-			d = q^(1/6) * (1 + √q)^(1/3) / (1 - q)
+			d = q^(1/6) * (1 + √q)^(4/3) / (1 - q)
 			H_N = (G .- 2√q / (1 - √q) * N) ./ (d * N^(1/3))
 			t = (-N:N) .* (1 - √q) / (1 + √q) * d * N^(-2/3)
 			idx = abs.(-N:N) .≤ N^(2/3)
-			@show mean((H_N .+ t.^2)[idx])
 			plot!(t[idx], (H_N .+ t.^2)[idx]; ls)
 		end
 	end
@@ -2475,6 +2517,7 @@ version = "1.8.1+0"
 # ╠═34b6361c-c631-4509-84df-3acbd468b2d0
 # ╠═7ed16d08-9925-4959-adb1-a297283891bd
 # ╠═a33e5804-3155-4e1e-b3f0-11f28d69fb5e
+# ╠═38d4028b-13c1-46b8-b7b0-9719617247fe
 # ╠═5ae63cc2-055f-4308-8434-ad3dccfeecbc
 # ╠═4270d02f-891c-41a0-bc15-a011893103d6
 # ╠═fd4a0cd2-66fb-4dcd-ba2a-0d5395e53657
@@ -2486,9 +2529,9 @@ version = "1.8.1+0"
 # ╠═b75a4185-0c7d-4f0b-8695-f353a7d49649
 # ╠═d8c99667-6835-4e05-ae5d-8f018a83f64c
 # ╠═a95b0385-e462-4175-bce8-93c1150d09e1
+# ╠═74462a82-6ffc-442b-8129-51c7c1d33122
 # ╠═12d4a9a7-6d1a-4ad4-bd68-ca86995ea907
-# ╠═619ebfbf-dc63-43dc-8abf-dcfcabf3a991
-# ╠═0a99d3b1-cd2f-436f-b31b-1eec36d052c3
+# ╠═d62adbaf-2702-4ba6-b166-ca550e36d74f
 # ╠═032227f5-9689-4563-bbad-79dfa6048ecf
 # ╠═672eb289-8ba1-464d-8da6-6a68ae8381ce
 # ╠═9bdbe542-7467-4db5-818d-1205cc59142c
